@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import random
 
-
 DAILY_QUESTIONS = [
     "Что нового сегодня?",
     "Что сегодня отличалось от обычного дня?",

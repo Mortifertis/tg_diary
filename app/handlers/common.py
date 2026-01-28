@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, Message
 
 from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
-from app.questions import pick_question, DAILY_QUESTIONS
+from app.questions import DAILY_QUESTIONS, pick_question
 from app.services.entries import count_entries, mood_breakdown
 from app.states import EntryState
 from app.storage import get_session

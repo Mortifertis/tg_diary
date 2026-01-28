@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from aiogram import Bot
 from aiogram.fsm.storage.base import StorageKey
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from zoneinfo import ZoneInfo
 
 from app.config import load_config
-from app.models import EntryType, User
-from app.questions import DAILY_QUESTIONS, MONTHLY_QUESTIONS, WEEKLY_QUESTIONS, pick_question
-from app.services.reminders import due_daily_reminders, due_monthly_reminder, due_weekly_reminder
-from app.storage import get_session
-from app.states import EntryState
 from app.keyboards import MOOD_KEYBOARD
+from app.models import EntryType, User
+from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
+                           WEEKLY_QUESTIONS, pick_question)
+from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
+                                    due_weekly_reminder)
+from app.states import EntryState
+from app.storage import get_session
 
 
 def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
