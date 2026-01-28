@@ -6,6 +6,17 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
+from app.constants import (
+    DAILY_TIME_UPDATED_TEMPLATE,
+    MONTHLY_TIME_UPDATED_TEMPLATE,
+    MONTHLY_USAGE_MESSAGE,
+    NEED_START_MESSAGE,
+    PAUSE_DISABLED_MESSAGE,
+    PAUSE_ENABLED_TEMPLATE,
+    TIME_USAGE_MESSAGE,
+    WEEKLY_TIME_UPDATED_TEMPLATE,
+    WEEKLY_USAGE_MESSAGE,
+)
 from app.models import User
 from app.storage import get_session
 
@@ -16,52 +27,52 @@ router = Router()
 async def set_daily_time(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.answer("Укажи время: /time HH:MM")
+        await message.answer(TIME_USAGE_MESSAGE)
         return
     time_value = args[1].strip()
     with get_session(message.bot) as session:
         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
         if not user:
-            await message.answer("Сначала напишите /start.")
+            await message.answer(NEED_START_MESSAGE)
             return
         user.daily_time = time_value
-    await message.answer(f"Ежедневное время обновлено: {time_value}")
+    await message.answer(DAILY_TIME_UPDATED_TEMPLATE.format(time_value=time_value))
 
 
 @router.message(Command("weekly"))
 async def set_weekly_time(message: Message) -> None:
     args = message.text.split(maxsplit=2)
     if len(args) < 3:
-        await message.answer("Укажи день недели и время: /weekly 6 20:00 (0=пн, 6=вс)")
+        await message.answer(WEEKLY_USAGE_MESSAGE)
         return
     day = int(args[1])
     time_value = args[2]
     with get_session(message.bot) as session:
         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
         if not user:
-            await message.answer("Сначала напишите /start.")
+            await message.answer(NEED_START_MESSAGE)
             return
         user.weekly_day = day
         user.weekly_time = time_value
-    await message.answer(f"Еженедельное время обновлено: {day} {time_value}")
+    await message.answer(WEEKLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value))
 
 
 @router.message(Command("monthly"))
 async def set_monthly_time(message: Message) -> None:
     args = message.text.split(maxsplit=2)
     if len(args) < 3:
-        await message.answer("Укажи день месяца и время: /monthly 1 20:00")
+        await message.answer(MONTHLY_USAGE_MESSAGE)
         return
     day = int(args[1])
     time_value = args[2]
     with get_session(message.bot) as session:
         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
         if not user:
-            await message.answer("Сначала напишите /start.")
+            await message.answer(NEED_START_MESSAGE)
             return
         user.monthly_day = day
         user.monthly_time = time_value
-    await message.answer(f"Ежемесячное время обновлено: {day} {time_value}")
+    await message.answer(MONTHLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value))
 
 
 @router.message(Command("pause"))
@@ -72,10 +83,10 @@ async def pause(message: Message) -> None:
     with get_session(message.bot) as session:
         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
         if not user:
-            await message.answer("Сначала напишите /start.")
+            await message.answer(NEED_START_MESSAGE)
             return
         user.pause_until = pause_until
-    await message.answer(f"Пауза включена до {pause_until}.")
+    await message.answer(PAUSE_ENABLED_TEMPLATE.format(pause_until=pause_until))
 
 
 @router.message(Command("resume"))
@@ -83,7 +94,7 @@ async def resume(message: Message) -> None:
     with get_session(message.bot) as session:
         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
         if not user:
-            await message.answer("Сначала напишите /start.")
+            await message.answer(NEED_START_MESSAGE)
             return
         user.pause_until = None
-    await message.answer("Пауза снята.")
+    await message.answer(PAUSE_DISABLED_MESSAGE)

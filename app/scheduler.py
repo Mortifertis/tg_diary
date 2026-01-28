@@ -8,6 +8,7 @@ from aiogram.fsm.storage.base import StorageKey
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import load_config
+from app.constants import DAILY_PROMPT_SUFFIX, MONTHLY_PROMPT_PREFIX, WEEKLY_PROMPT_PREFIX
 from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
 from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
@@ -63,7 +64,7 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
 
 def _build_prompt(entry_type: EntryType, question: str) -> str:
     if entry_type == EntryType.daily:
-        return f"{question}\nМожно коротко, 1–3 предложения."
+        return f"{question}\n{DAILY_PROMPT_SUFFIX}"
     if entry_type == EntryType.weekly:
-        return f"Еженедельная заметка. {question}"
-    return f"Месячная ретроспектива. {question}"
+        return f"{WEEKLY_PROMPT_PREFIX} {question}"
+    return f"{MONTHLY_PROMPT_PREFIX} {question}"

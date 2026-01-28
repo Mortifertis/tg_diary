@@ -8,6 +8,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
 from app.config import load_config
+from app.constants import BOT_TOKEN_MISSING
 from app.db import create_session_factory, init_db
 from app.handlers import common, entry, settings
 from app.scheduler import create_scheduler
@@ -18,7 +19,7 @@ async def main() -> None:
     load_dotenv()
     config = load_config()
     if not config.bot_token:
-        raise RuntimeError("BOT_TOKEN is not set")
+        raise RuntimeError(BOT_TOKEN_MISSING)
 
     session_factory = create_session_factory(config.database_url)
     engine = session_factory.kw["bind"]
