@@ -101,6 +101,7 @@ async def daily_prompt(message: Message, state: FSMContext) -> None:
         entry_date=date.today().isoformat(),
         question=question,
         mood=None,
+        question_queue=[],
     )
     await message.answer(f"{question}\n{DAILY_PROMPT_SUFFIX}", reply_markup=MOOD_KEYBOARD)
 

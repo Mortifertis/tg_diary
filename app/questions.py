@@ -104,3 +104,10 @@ MONTHLY_QUESTIONS = [
 
 def pick_question(question_pool: list[str]) -> str:
     return random.choice(question_pool)
+
+
+def pick_questions(question_pool: list[str], count: int) -> list[str]:
+    if count <= 0:
+        return []
+    sample_size = min(count, len(question_pool))
+    return random.sample(question_pool, sample_size)

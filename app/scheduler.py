@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -8,11 +9,16 @@ from aiogram.fsm.storage.base import StorageKey
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import load_config
-from app.constants import DAILY_PROMPT_SUFFIX, MONTHLY_PROMPT_PREFIX, WEEKLY_PROMPT_PREFIX
 from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
-from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
-                           WEEKLY_QUESTIONS, pick_question)
+from app.prompts import build_prompt
+from app.questions import (
+    DAILY_QUESTIONS,
+    MONTHLY_QUESTIONS,
+    WEEKLY_QUESTIONS,
+    pick_question,
+    pick_questions,
+)
 from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
                                     due_weekly_reminder)
 from app.states import EntryState
@@ -34,13 +40,18 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                 reminders.extend(due_monthly_reminder(session, user, now))
 
                 for reminder in reminders:
-                    question_pool = {
-                        EntryType.daily: DAILY_QUESTIONS,
-                        EntryType.weekly: WEEKLY_QUESTIONS,
-                        EntryType.monthly: MONTHLY_QUESTIONS,
-                    }[reminder.entry_type]
-                    question = pick_question(question_pool)
-                    message = _build_prompt(reminder.entry_type, question)
+                    question_queue = []
+                    if reminder.entry_type == EntryType.daily:
+                        question = pick_question(DAILY_QUESTIONS)
+                    elif reminder.entry_type == EntryType.weekly:
+                        questions = pick_questions(WEEKLY_QUESTIONS, random.randint(4, 6))
+                        question = questions[0]
+                        question_queue = questions[1:]
+                    else:
+                        questions = pick_questions(MONTHLY_QUESTIONS, random.randint(6, 8))
+                        question = questions[0]
+                        question_queue = questions[1:]
+                    message = build_prompt(reminder.entry_type, question)
                     await bot.send_message(
                         chat_id=user.telegram_id,
                         text=message,
@@ -55,16 +66,9 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                             "entry_date": now.date().isoformat(),
                             "question": question,
                             "mood": None,
+                            "question_queue": question_queue,
                         },
                     )
 
     scheduler.add_job(reminder_job, "interval", minutes=1)
     return scheduler
-
-
-def _build_prompt(entry_type: EntryType, question: str) -> str:
-    if entry_type == EntryType.daily:
-        return f"{question}\n{DAILY_PROMPT_SUFFIX}"
-    if entry_type == EntryType.weekly:
-        return f"{WEEKLY_PROMPT_PREFIX} {question}"
-    return f"{MONTHLY_PROMPT_PREFIX} {question}"
