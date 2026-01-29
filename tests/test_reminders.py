@@ -49,3 +49,43 @@ def test_weekly_and_monthly_reminders(session, user):
     monthly_now = datetime.combine(monthly_date, time(21, 0), tzinfo=ZoneInfo("UTC"))
     monthly_due = due_monthly_reminder(session, user, monthly_now)
     assert [item.entry_type for item in monthly_due] == [EntryType.monthly]
+
+
+def test_weekly_reminder_waits_for_time(session, user):
+    weekly_date = date(2024, 1, 7)
+    user.weekly_day = weekly_date.weekday()
+    user.weekly_time = "20:00"
+
+    early_now = datetime.combine(weekly_date, time(19, 0), tzinfo=ZoneInfo("UTC"))
+    assert due_weekly_reminder(session, user, early_now) == []
+
+    on_time = datetime.combine(weekly_date, time(20, 0), tzinfo=ZoneInfo("UTC"))
+    due = due_weekly_reminder(session, user, on_time)
+    assert [item.entry_type for item in due] == [EntryType.weekly]
+
+
+def test_weekly_and_monthly_respect_pause(session, user):
+    paused_date = date(2024, 1, 7)
+    user.pause_until = paused_date
+    user.weekly_day = paused_date.weekday()
+    weekly_now = datetime.combine(paused_date, time(21, 0), tzinfo=ZoneInfo("UTC"))
+    assert due_weekly_reminder(session, user, weekly_now) == []
+
+    monthly_date = date(2024, 2, 1)
+    user.monthly_day = monthly_date.day
+    user.pause_until = monthly_date
+    monthly_now = datetime.combine(monthly_date, time(21, 0), tzinfo=ZoneInfo("UTC"))
+    assert due_monthly_reminder(session, user, monthly_now) == []
+
+
+def test_monthly_reminder_waits_for_time(session, user):
+    monthly_date = date(2024, 2, 1)
+    user.monthly_day = monthly_date.day
+    user.monthly_time = "20:00"
+
+    early_now = datetime.combine(monthly_date, time(19, 0), tzinfo=ZoneInfo("UTC"))
+    assert due_monthly_reminder(session, user, early_now) == []
+
+    on_time = datetime.combine(monthly_date, time(20, 0), tzinfo=ZoneInfo("UTC"))
+    due = due_monthly_reminder(session, user, on_time)
+    assert [item.entry_type for item in due] == [EntryType.monthly]
