@@ -16,7 +16,7 @@ Telegram-бот дневника с ежедневными, еженедельн
    ```bash
    pip install -r requirements.txt
    ```
-3. Создайте файл `.env` по примеру и заполните токен.
+3. Создайте файл `.env` по примеру `.env.example` и заполните токен.
 4. Запустите бота:
    ```bash
    python -m app.main
@@ -35,7 +35,7 @@ Telegram-бот дневника с ежедневными, еженедельн
 - `REMINDER_EVENING_HOUR` — час вечернего напоминания.
 
 ## Docker
-1. Создайте `.env`.
+1. Заполните `.env.docker` и укажите токен бота.
 2. Запустите:
    ```bash
    docker compose up --build
