@@ -37,8 +37,17 @@ async def main() -> None:
     scheduler = create_scheduler(bot, storage)
     scheduler.start()
 
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    except asyncio.CancelledError:
+        logging.info("Polling cancelled")
+    finally:
+        scheduler.shutdown(wait=False)
+        await bot.session.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logging.info("Bot stopped by user")
