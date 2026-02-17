@@ -35,7 +35,7 @@ async def save_entry(message: Message, state: FSMContext) -> None:
             user=user,
             entry_type=entry_type,
             entry_date=entry_date,
-            text=message.text,
+            text=message.text or "",
             mood=mood,
             question=question,
         )

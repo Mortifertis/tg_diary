@@ -12,13 +12,8 @@ from app.config import load_config
 from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
 from app.prompts import build_prompt
-from app.questions import (
-    DAILY_QUESTIONS,
-    MONTHLY_QUESTIONS,
-    WEEKLY_QUESTIONS,
-    pick_question,
-    pick_questions,
-)
+from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
+                           WEEKLY_QUESTIONS, pick_question, pick_questions)
 from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
                                     due_weekly_reminder)
 from app.states import EntryState

@@ -4,7 +4,8 @@ from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
 from app.models import EntryType
-from app.services.reminders import due_daily_reminders, due_monthly_reminder, due_weekly_reminder
+from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
+                                    due_weekly_reminder)
 
 
 def test_due_daily_reminders_progresses_stages(session, user):

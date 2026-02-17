@@ -76,3 +76,29 @@ def has_entry_for_date(session: Session, user: User, entry_type: EntryType, entr
         .first()
         is not None
     )
+
+
+def list_entries(session: Session, user: User, limit: int | None) -> list[Entry]:
+    query = (
+        session.query(Entry)
+        .filter(Entry.user_id == user.id)
+        .order_by(Entry.created_at.desc(), Entry.id.desc())
+    )
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
+
+
+def format_entries_export(entries: list[Entry]) -> str:
+    lines = []
+    for entry in entries:
+        lines.append(f"Дата создания: {entry.created_at:%Y-%m-%d %H:%M:%S}")
+        lines.append(f"Тип: {entry.entry_type.value}")
+        lines.append(f"Дата записи: {entry.entry_date:%Y-%m-%d}")
+        if entry.question:
+            lines.append(f"Вопрос: {entry.question}")
+        if entry.mood:
+            lines.append(f"Настроение: {entry.mood}")
+        lines.append(f"Текст: {entry.text}")
+        lines.append("-" * 40)
+    return "\n".join(lines)
