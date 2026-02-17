@@ -27,7 +27,7 @@ async def main() -> None:
 
     storage = MemoryStorage()
     bot = Bot(token=config.bot_token)
-    bot["session_factory"] = session_factory
+    bot.session_factory = session_factory
 
     dp = Dispatcher(storage=storage)
     dp.include_router(common.router)
