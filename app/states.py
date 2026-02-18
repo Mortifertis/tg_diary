@@ -9,3 +9,7 @@ class SettingsState(StatesGroup):
     waiting_daily_time = State()
     waiting_weekly_time = State()
     waiting_monthly_time = State()
+    waiting_new_daily_question = State()
+    waiting_delete_daily_question_id = State()
+    waiting_pause_daily_question_id = State()
+    waiting_resume_daily_question_id = State()

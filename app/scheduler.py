@@ -14,6 +14,7 @@ from app.models import EntryType, User
 from app.prompts import build_prompt
 from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
                            WEEKLY_QUESTIONS, pick_question, pick_questions)
+from app.services.questions import list_active_daily_questions
 from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
                                     due_weekly_reminder)
 from app.states import EntryState
@@ -37,7 +38,8 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                 for reminder in reminders:
                     question_queue = []
                     if reminder.entry_type == EntryType.daily:
-                        question = pick_question(DAILY_QUESTIONS)
+                        daily_questions = list_active_daily_questions(session, user)
+                        question = pick_question(daily_questions or DAILY_QUESTIONS)
                     elif reminder.entry_type == EntryType.weekly:
                         questions = pick_questions(WEEKLY_QUESTIONS, random.randint(4, 6))
                         question = questions[0]

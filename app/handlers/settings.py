@@ -10,14 +10,31 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
-                           MENU_MONTHLY, MENU_PAUSE, MENU_RESUME, MENU_WEEKLY,
+                           MENU_DAILY_QUESTIONS, MENU_MONTHLY, MENU_PAUSE,
+                           MENU_QUESTIONS_ADD, MENU_QUESTIONS_DELETE,
+                           MENU_QUESTIONS_PAUSE, MENU_QUESTIONS_RESUME,
+                           MENU_RESUME, MENU_WEEKLY,
                            MONTHLY_TIME_UPDATED_TEMPLATE,
                            MONTHLY_USAGE_MESSAGE, NEED_START_MESSAGE,
                            PAUSE_DISABLED_MESSAGE, PAUSE_ENABLED_TEMPLATE,
-                           SETTINGS_DAILY_PROMPT, SETTINGS_MONTHLY_PROMPT,
+                           QUESTIONS_ADD_PROMPT, QUESTIONS_ADDED_MESSAGE,
+                           QUESTIONS_DELETE_PROMPT, QUESTIONS_DELETED_MESSAGE,
+                           QUESTIONS_DUPLICATE_MESSAGE,
+                           QUESTIONS_EMPTY_MESSAGE,
+                           QUESTIONS_EMPTY_TEXT_MESSAGE,
+                           QUESTIONS_INVALID_ID_MESSAGE, QUESTIONS_LIST_HEADER,
+                           QUESTIONS_NOT_FOUND_MESSAGE, QUESTIONS_PAUSE_PROMPT,
+                           QUESTIONS_PAUSED_MESSAGE, QUESTIONS_RESUME_PROMPT,
+                           QUESTIONS_RESUMED_MESSAGE, SETTINGS_DAILY_PROMPT,
+                           SETTINGS_MONTHLY_PROMPT,
+                           SETTINGS_QUESTIONS_MENU_MESSAGE,
                            SETTINGS_WEEKLY_PROMPT, TIME_USAGE_MESSAGE,
                            WEEKLY_TIME_UPDATED_TEMPLATE, WEEKLY_USAGE_MESSAGE)
+from app.keyboards import QUESTIONS_SETTINGS_KEYBOARD
 from app.models import User
+from app.services.questions import (add_daily_question, delete_daily_question,
+                                    list_daily_questions,
+                                    set_daily_question_active)
 from app.states import SettingsState
 from app.storage import get_session
 
@@ -71,6 +88,15 @@ def _parse_monthly(raw_value: str) -> tuple[int, str] | None:
     return day, time_value
 
 
+def _parse_question_id(raw_value: str | None) -> int | None:
+    if raw_value is None:
+        return None
+    value = raw_value.strip()
+    if not value.isdigit():
+        return None
+    return int(value)
+
+
 def _update_daily_time(message: Message, time_value: str) -> str:
     with get_session(message.bot) as session:
         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
@@ -100,6 +126,31 @@ def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
         user.monthly_day = day
         user.monthly_time = time_value
     return MONTHLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value)
+
+
+def _build_daily_questions_list(message: Message) -> str:
+    with get_session(message.bot) as session:
+        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            return NEED_START_MESSAGE
+        questions = list_daily_questions(session, user)
+
+    if not questions:
+        return QUESTIONS_EMPTY_MESSAGE
+
+    lines = [QUESTIONS_LIST_HEADER]
+    for question in questions:
+        status = "активен" if question.is_active else "на паузе"
+        lines.append(f"{question.id}. [{status}] {question.text}")
+    return "\n".join(lines)
+
+
+async def _show_daily_questions_menu(message: Message) -> None:
+    await message.answer(
+        _build_daily_questions_list(message),
+        reply_markup=QUESTIONS_SETTINGS_KEYBOARD,
+    )
+    await message.answer(SETTINGS_QUESTIONS_MENU_MESSAGE)
 
 
 @router.message(Command("time"))
@@ -159,6 +210,124 @@ async def menu_set_weekly_time(message: Message, state: FSMContext) -> None:
 async def menu_set_monthly_time(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.waiting_monthly_time)
     await message.answer(SETTINGS_MONTHLY_PROMPT)
+
+
+@router.message(F.text == MENU_DAILY_QUESTIONS)
+async def daily_questions_menu(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await _show_daily_questions_menu(message)
+
+
+@router.message(F.text == MENU_QUESTIONS_ADD)
+async def prompt_add_daily_question(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.waiting_new_daily_question)
+    await message.answer(QUESTIONS_ADD_PROMPT)
+
+
+@router.message(F.text == MENU_QUESTIONS_DELETE)
+async def prompt_delete_daily_question(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.waiting_delete_daily_question_id)
+    await message.answer(QUESTIONS_DELETE_PROMPT)
+
+
+@router.message(F.text == MENU_QUESTIONS_PAUSE)
+async def prompt_pause_daily_question(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.waiting_pause_daily_question_id)
+    await message.answer(QUESTIONS_PAUSE_PROMPT)
+
+
+@router.message(F.text == MENU_QUESTIONS_RESUME)
+async def prompt_resume_daily_question(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.waiting_resume_daily_question_id)
+    await message.answer(QUESTIONS_RESUME_PROMPT)
+
+
+@router.message(SettingsState.waiting_new_daily_question)
+async def save_new_daily_question(message: Message, state: FSMContext) -> None:
+    text = (message.text or "").strip()
+    if not text:
+        await message.answer(QUESTIONS_EMPTY_TEXT_MESSAGE)
+        return
+
+    with get_session(message.bot) as session:
+        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        added = add_daily_question(session, user, text)
+
+    await state.clear()
+    if not added:
+        await message.answer(QUESTIONS_DUPLICATE_MESSAGE)
+        return
+    await message.answer(QUESTIONS_ADDED_MESSAGE)
+    await _show_daily_questions_menu(message)
+
+
+@router.message(SettingsState.waiting_delete_daily_question_id)
+async def delete_daily_question_from_menu(message: Message, state: FSMContext) -> None:
+    question_id = _parse_question_id(message.text)
+    if question_id is None:
+        await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
+        return
+
+    with get_session(message.bot) as session:
+        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        deleted = delete_daily_question(session, user, question_id)
+
+    await state.clear()
+    if not deleted:
+        await message.answer(QUESTIONS_NOT_FOUND_MESSAGE)
+        return
+    await message.answer(QUESTIONS_DELETED_MESSAGE)
+    await _show_daily_questions_menu(message)
+
+
+@router.message(SettingsState.waiting_pause_daily_question_id)
+async def pause_daily_question_from_menu(message: Message, state: FSMContext) -> None:
+    question_id = _parse_question_id(message.text)
+    if question_id is None:
+        await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
+        return
+
+    with get_session(message.bot) as session:
+        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        updated = set_daily_question_active(session, user, question_id, False)
+
+    await state.clear()
+    if not updated:
+        await message.answer(QUESTIONS_NOT_FOUND_MESSAGE)
+        return
+    await message.answer(QUESTIONS_PAUSED_MESSAGE)
+    await _show_daily_questions_menu(message)
+
+
+@router.message(SettingsState.waiting_resume_daily_question_id)
+async def resume_daily_question_from_menu(message: Message, state: FSMContext) -> None:
+    question_id = _parse_question_id(message.text)
+    if question_id is None:
+        await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
+        return
+
+    with get_session(message.bot) as session:
+        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        updated = set_daily_question_active(session, user, question_id, True)
+
+    await state.clear()
+    if not updated:
+        await message.answer(QUESTIONS_NOT_FOUND_MESSAGE)
+        return
+    await message.answer(QUESTIONS_RESUMED_MESSAGE)
+    await _show_daily_questions_menu(message)
 
 
 @router.message(SettingsState.waiting_daily_time)

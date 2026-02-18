@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import enum
-from datetime import date, datetime
+from datetime import datetime
 
 from sqlalchemy import (Boolean, Column, Date, DateTime, Enum, ForeignKey,
-                        Integer, String, Text)
+                        Integer, String, Text, UniqueConstraint)
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -37,6 +37,11 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     entries = relationship("Entry", back_populates="user", cascade="all, delete-orphan")
+    questions = relationship(
+        "UserQuestion",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
 class Entry(Base):
@@ -52,3 +57,20 @@ class Entry(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="entries")
+
+
+class UserQuestion(Base):
+    __tablename__ = "user_questions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "entry_type", "text", name="uq_user_question_text"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    entry_type = Column(Enum(EntryType), nullable=False)
+    text = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_default = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="questions")

@@ -11,7 +11,7 @@ from app.constants import (DAILY_PROMPT_SUFFIX, EXPORT_3_MONTHS, EXPORT_ALL,
                            EXPORT_CALLBACK_PREFIX, EXPORT_DONE_TEMPLATE,
                            EXPORT_MENU_PROMPT, EXPORT_MONTH, EXPORT_NO_ENTRIES,
                            EXPORT_WEEK, EXPORT_YEAR, MANUAL_ENTRY_PROMPT,
-                           MENU_BACK, MENU_CREATE_ENTRY, MENU_SET_REMINDERS,
+                           MENU_BACK, MENU_CREATE_ENTRY, MENU_SETTINGS,
                            MENU_VIEW_ENTRIES, MOOD_BAD_ICON, MOOD_GOOD_ICON,
                            MOOD_NEUTRAL_ICON, MOOD_SAVED_MESSAGE,
                            NEED_START_MESSAGE, RECENT_ENTRIES_EMPTY,
@@ -29,6 +29,8 @@ from app.questions import DAILY_QUESTIONS, pick_question
 from app.services.entries import (count_entries, format_entries_export,
                                   list_entries, mood_breakdown,
                                   resolve_export_start_date)
+from app.services.questions import (ensure_default_daily_questions,
+                                    list_active_daily_questions)
 from app.states import EntryState
 from app.storage import get_session
 
@@ -67,6 +69,7 @@ async def start(message: Message) -> None:
             )
             session.add(user)
             session.commit()
+        ensure_default_daily_questions(session, user)
     await message.answer(START_MESSAGE, reply_markup=MAIN_MENU_KEYBOARD)
 
 
@@ -126,7 +129,14 @@ async def status(message: Message) -> None:
 
 @router.message(Command("daily"))
 async def daily_prompt(message: Message, state: FSMContext) -> None:
-    question = pick_question(DAILY_QUESTIONS)
+    with get_session(message.bot) as session:
+        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        questions = list_active_daily_questions(session, user)
+    question_pool = questions or DAILY_QUESTIONS
+    question = pick_question(question_pool)
     await state.set_state(EntryState.waiting_text)
     await state.update_data(
         entry_type=EntryType.daily.value,
@@ -151,7 +161,7 @@ async def create_entry_from_menu(message: Message, state: FSMContext) -> None:
     await message.answer(MANUAL_ENTRY_PROMPT)
 
 
-@router.message(F.text == MENU_SET_REMINDERS)
+@router.message(F.text == MENU_SETTINGS)
 async def reminder_settings_menu(message: Message) -> None:
     await message.answer(
         SETTINGS_MENU_MESSAGE,
