@@ -6,9 +6,14 @@ from aiogram import Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from app.constants import ENTRY_SAVED_MESSAGE, NEED_START_MESSAGE
+from app.constants import (ENTRY_EMPTY_CONTENT_MESSAGE, ENTRY_MEDIA_MAX_IMAGES,
+                           ENTRY_SAVED_MESSAGE, ENTRY_TOO_MANY_IMAGES_TEMPLATE,
+                           ENTRY_UNSUPPORTED_EXTENSION_TEMPLATE,
+                           NEED_START_MESSAGE)
 from app.models import EntryType, User
 from app.prompts import build_prompt
+from app.services.attachments import (AttachmentValidationError,
+                                      has_entry_content, parse_attachments)
 from app.services.entries import create_entry
 from app.states import EntryState
 from app.storage import get_session
@@ -25,6 +30,24 @@ async def save_entry(message: Message, state: FSMContext) -> None:
     mood = data.get("mood")
     question_queue = data.get("question_queue") or []
 
+    try:
+        attachments = parse_attachments(message)
+    except AttachmentValidationError as error:
+        extension = str(error)
+        if extension == "too_many_images":
+            await message.answer(
+                ENTRY_TOO_MANY_IMAGES_TEMPLATE.format(max_images=ENTRY_MEDIA_MAX_IMAGES)
+            )
+            return
+        await message.answer(
+            ENTRY_UNSUPPORTED_EXTENSION_TEMPLATE.format(extension=extension)
+        )
+        return
+
+    if not has_entry_content(message, attachments):
+        await message.answer(ENTRY_EMPTY_CONTENT_MESSAGE)
+        return
+
     with get_session(message.bot) as session:
         user = (
             session.query(User)
@@ -39,9 +62,10 @@ async def save_entry(message: Message, state: FSMContext) -> None:
             user=user,
             entry_type=entry_type,
             entry_date=entry_date,
-            text=message.text or "",
+            text=(message.text or message.caption or "").strip(),
             mood=mood,
             question=question,
+            attachments=attachments,
         )
     await message.answer(ENTRY_SAVED_MESSAGE)
 

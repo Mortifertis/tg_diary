@@ -71,6 +71,42 @@ QUESTIONS_RESET_DEFAULTS_MESSAGE = (
 )
 RECENT_ENTRIES_EMPTY = "У вас пока нет записей."
 RECENT_ENTRIES_HEADER = "Последние 3 записи:"
+
+ENTRY_MEDIA_MAX_IMAGES = 5
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+ALLOWED_FILE_EXTENSIONS = {
+    ".txt",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".csv",
+    ".rtf",
+    ".odt",
+}
+
+ENTRY_UNSUPPORTED_EXTENSION_TEMPLATE = (
+    "Файл с расширением {extension} недоступен для загрузки."
+)
+ENTRY_TOO_MANY_IMAGES_TEMPLATE = (
+    "Можно прикрепить не более {max_images} изображений в одном сообщении."
+)
+ENTRY_EMPTY_CONTENT_MESSAGE = (
+    "Отправьте текст записи, изображение или файл с поддерживаемым расширением."
+)
+EXPORT_VIEW_BY_INDEX = "Показать запись по индексу"
+EXPORT_INDEX_CALLBACK = "export:index"
+ENTRY_INDEX_PROMPT = "Введите индекс записи (например, d1):"
+ENTRY_NOT_FOUND_TEMPLATE = "Запись с индексом {entry_index} не найдена."
+ENTRY_DETAILS_HEADER_TEMPLATE = (
+    "Запись {entry_index}\n"
+    "Дата создания: {created_at}\n"
+    "Тип: {entry_type}\n"
+    "Дата записи: {entry_date}"
+)
+ENTRY_DETAILS_TEXT_TEMPLATE = "Текст: {text}"
+ENTRY_DETAILS_ATTACHMENTS_HEADER = "Вложения:"
+ENTRY_INDEX_INVALID_MESSAGE = "Индекс не должен быть пустым."
 EXPORT_CAPTION = "Полный архив записей за всё время."
 EXPORT_MENU_PROMPT = "Выберите период для выгрузки архива:"
 EXPORT_WEEK = "Последняя неделя"

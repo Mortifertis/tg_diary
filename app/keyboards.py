@@ -4,13 +4,15 @@ from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, ReplyKeyboardMarkup)
 
 from app.constants import (EXPORT_3_MONTHS, EXPORT_ALL, EXPORT_BACK,
-                           EXPORT_MONTH, EXPORT_WEEK, EXPORT_YEAR, MENU_BACK,
-                           MENU_CREATE_ENTRY, MENU_DAILY, MENU_DAILY_QUESTIONS,
-                           MENU_MONTHLY, MENU_QUESTIONS_ADD,
-                           MENU_QUESTIONS_DELETE, MENU_QUESTIONS_PAUSE,
-                           MENU_QUESTIONS_RESET, MENU_QUESTIONS_RESUME,
-                           MENU_SETTINGS, MENU_VIEW_ENTRIES, MENU_WEEKLY,
-                           MOOD_BAD_LABEL, MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL)
+                           EXPORT_INDEX_CALLBACK, EXPORT_MONTH,
+                           EXPORT_VIEW_BY_INDEX, EXPORT_WEEK, EXPORT_YEAR,
+                           MENU_BACK, MENU_CREATE_ENTRY, MENU_DAILY,
+                           MENU_DAILY_QUESTIONS, MENU_MONTHLY,
+                           MENU_QUESTIONS_ADD, MENU_QUESTIONS_DELETE,
+                           MENU_QUESTIONS_PAUSE, MENU_QUESTIONS_RESET,
+                           MENU_QUESTIONS_RESUME, MENU_SETTINGS,
+                           MENU_VIEW_ENTRIES, MENU_WEEKLY, MOOD_BAD_LABEL,
+                           MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL)
 
 MOOD_KEYBOARD = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -77,6 +79,12 @@ EXPORT_ENTRIES_KEYBOARD = InlineKeyboardMarkup(
         ],
         [InlineKeyboardButton(text=EXPORT_YEAR, callback_data="export:year")],
         [InlineKeyboardButton(text=EXPORT_ALL, callback_data="export:all")],
+        [
+            InlineKeyboardButton(
+                text=EXPORT_VIEW_BY_INDEX,
+                callback_data=EXPORT_INDEX_CALLBACK,
+            )
+        ],
         [InlineKeyboardButton(text=EXPORT_BACK, callback_data="export:back")],
     ]
 )

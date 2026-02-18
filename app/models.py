@@ -50,10 +50,14 @@ class User(Base):
 
 class Entry(Base):
     __tablename__ = "entries"
+    __table_args__ = (
+        UniqueConstraint("user_id", "entry_index", name="uq_entry_index"),
+    )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     entry_type = Column(Enum(EntryType), nullable=False)
+    entry_index = Column(String(16), nullable=False)
     entry_date = Column(Date, nullable=False)
     question = Column(String(255))
     text = Column(Text, nullable=False)
@@ -61,6 +65,30 @@ class Entry(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="entries")
+    attachments = relationship(
+        "EntryAttachment",
+        back_populates="entry",
+        cascade="all, delete-orphan",
+    )
+
+
+class AttachmentType(str, enum.Enum):
+    image = "image"
+    file = "file"
+
+
+class EntryAttachment(Base):
+    __tablename__ = "entry_attachments"
+
+    id = Column(Integer, primary_key=True)
+    entry_id = Column(Integer, ForeignKey("entries.id"), nullable=False)
+    attachment_type = Column(Enum(AttachmentType), nullable=False)
+    file_id = Column(String(255), nullable=False)
+    file_name = Column(String(255), nullable=False)
+    extension = Column(String(16), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    entry = relationship("Entry", back_populates="attachments")
 
 
 class UserQuestion(Base):

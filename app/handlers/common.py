@@ -7,8 +7,14 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
-from app.constants import (DAILY_PROMPT_SUFFIX, EXPORT_3_MONTHS, EXPORT_ALL,
-                           EXPORT_CALLBACK_PREFIX, EXPORT_DONE_TEMPLATE,
+from app.constants import (DAILY_PROMPT_SUFFIX,
+                           ENTRY_DETAILS_ATTACHMENTS_HEADER,
+                           ENTRY_DETAILS_HEADER_TEMPLATE,
+                           ENTRY_DETAILS_TEXT_TEMPLATE,
+                           ENTRY_INDEX_INVALID_MESSAGE, ENTRY_INDEX_PROMPT,
+                           ENTRY_NOT_FOUND_TEMPLATE, EXPORT_3_MONTHS,
+                           EXPORT_ALL, EXPORT_CALLBACK_PREFIX,
+                           EXPORT_DONE_TEMPLATE, EXPORT_INDEX_CALLBACK,
                            EXPORT_MENU_PROMPT, EXPORT_MONTH, EXPORT_NO_ENTRIES,
                            EXPORT_WEEK, EXPORT_YEAR, MANUAL_ENTRY_PROMPT,
                            MENU_BACK, MENU_CREATE_ENTRY, MENU_SETTINGS,
@@ -27,8 +33,8 @@ from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
 from app.models import Entry, EntryType, User
 from app.questions import DAILY_QUESTIONS, pick_question
 from app.services.entries import (count_entries, format_entries_export,
-                                  list_entries, mood_breakdown,
-                                  resolve_export_start_date)
+                                  get_entry_by_index, list_entries,
+                                  mood_breakdown, resolve_export_start_date)
 from app.services.questions import (ensure_default_daily_questions,
                                     list_active_daily_questions)
 from app.states import EntryState
@@ -43,7 +49,7 @@ def _format_recent_entries(entries: list[Entry]) -> str:
         lines.append(
             (
                 f"{index}. {entry.created_at:%Y-%m-%d %H:%M:%S} "
-                f"({entry.entry_type.value})\n"
+                f"({entry.entry_type.value}) [{entry.entry_index}]\n"
                 f"{entry.text}"
             )
         )
@@ -242,7 +248,7 @@ def _resolve_period_label(period: str) -> str | None:
 
 
 @router.callback_query(F.data.startswith(EXPORT_CALLBACK_PREFIX))
-async def export_entries(callback: CallbackQuery) -> None:
+async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
     if not callback.data:
         await callback.answer()
         return
@@ -254,6 +260,12 @@ async def export_entries(callback: CallbackQuery) -> None:
                 START_MESSAGE,
                 reply_markup=MAIN_MENU_KEYBOARD,
             )
+        return
+    if callback.data == EXPORT_INDEX_CALLBACK:
+        await state.set_state(EntryState.waiting_entry_index)
+        if callback.message:
+            await callback.message.answer(ENTRY_INDEX_PROMPT)
+        await callback.answer()
         return
 
     period_label = _resolve_period_label(period)
@@ -293,6 +305,57 @@ async def export_entries(callback: CallbackQuery) -> None:
             export_file,
             caption=EXPORT_DONE_TEMPLATE.format(period_label=period_label),
         )
+
+
+@router.message(EntryState.waiting_entry_index)
+async def show_entry_by_index(message: Message, state: FSMContext) -> None:
+    entry_index = (message.text or "").strip().lower()
+    if not entry_index:
+        await message.answer(ENTRY_INDEX_INVALID_MESSAGE)
+        return
+
+    with get_session(message.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        entry = get_entry_by_index(session, user, entry_index)
+
+    if not entry:
+        await message.answer(
+            ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+        )
+        return
+
+    header = ENTRY_DETAILS_HEADER_TEMPLATE.format(
+        entry_index=entry.entry_index,
+        created_at=entry.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        entry_type=entry.entry_type.value,
+        entry_date=entry.entry_date.strftime("%Y-%m-%d"),
+    )
+    await message.answer(
+        f"{header}\n{ENTRY_DETAILS_TEXT_TEMPLATE.format(text=entry.text)}"
+    )
+
+    if entry.attachments:
+        await message.answer(ENTRY_DETAILS_ATTACHMENTS_HEADER)
+        for attachment in entry.attachments:
+            if attachment.attachment_type.value == "image":
+                await message.answer_photo(
+                    photo=attachment.file_id,
+                    caption=attachment.file_name,
+                )
+            else:
+                await message.answer_document(
+                    document=attachment.file_id,
+                    caption=attachment.file_name,
+                )
+
+    await state.clear()
 
 
 @router.callback_query(F.data.startswith("mood:"))

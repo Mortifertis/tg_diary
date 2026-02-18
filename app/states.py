@@ -3,6 +3,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 class EntryState(StatesGroup):
     waiting_text = State()
+    waiting_entry_index = State()
 
 
 class SettingsState(StatesGroup):

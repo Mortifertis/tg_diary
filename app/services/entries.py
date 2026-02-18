@@ -5,7 +5,14 @@ from datetime import date, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import Entry, EntryType, User
+from app.models import AttachmentType, Entry, EntryAttachment, EntryType, User
+
+ENTRY_TYPE_INDEX_PREFIXES = {
+    EntryType.daily: "d",
+    EntryType.weekly: "w",
+    EntryType.monthly: "m",
+    EntryType.user: "u",
+}
 
 
 def create_entry(
@@ -16,16 +23,29 @@ def create_entry(
     text: str,
     mood: str | None,
     question: str | None,
+    attachments: list[dict[str, str]] | None = None,
 ) -> Entry:
     entry = Entry(
         user_id=user.id,
         entry_type=entry_type,
+        entry_index="pending",
         entry_date=entry_date,
         text=text,
         mood=mood,
         question=question,
     )
+    for attachment in attachments or []:
+        entry.attachments.append(
+            EntryAttachment(
+                attachment_type=AttachmentType(attachment["type"]),
+                file_id=attachment["file_id"],
+                file_name=attachment["file_name"],
+                extension=attachment["extension"],
+            )
+        )
     session.add(entry)
+    session.flush()
+    entry.entry_index = f"{ENTRY_TYPE_INDEX_PREFIXES[entry_type]}{entry.id}"
     update_streak(user, entry_date)
     reset_daily_reminders(user, entry_type, entry_date)
     return entry
@@ -106,14 +126,34 @@ def format_entries_export(entries: list[Entry]) -> str:
     for entry in entries:
         lines.append(f"Дата создания: {entry.created_at:%Y-%m-%d %H:%M:%S}")
         lines.append(f"Тип: {entry.entry_type.value}")
+        lines.append(f"Индекс: {entry.entry_index}")
         lines.append(f"Дата записи: {entry.entry_date:%Y-%m-%d}")
         if entry.question:
             lines.append(f"Вопрос: {entry.question}")
         if entry.mood:
             lines.append(f"Настроение: {entry.mood}")
         lines.append(f"Текст: {entry.text}")
+        if entry.attachments:
+            lines.append("Вложения:")
+            lines.extend(
+                f"- {attachment.file_name}"
+                for attachment in entry.attachments
+            )
         lines.append("-" * 40)
     return "\n".join(lines)
+
+
+def get_entry_by_index(
+    session: Session, user: User, entry_index: str
+) -> Entry | None:
+    return (
+        session.query(Entry)
+        .filter(
+            Entry.user_id == user.id,
+            Entry.entry_index == entry_index,
+        )
+        .first()
+    )
 
 
 def resolve_export_start_date(period: str, today: date) -> date | None:

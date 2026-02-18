@@ -115,6 +115,7 @@ def test_daily_reminder_ignores_user_entries(session, user):
             user_id=user.id,
             entry_type=EntryType.user,
             entry_date=day,
+            entry_index="u1",
             text="manual",
         )
     )

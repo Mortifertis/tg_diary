@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from app.models import Entry, EntryType
-from app.services.entries import (create_entry, list_entries,
+from app.services.entries import (create_entry, format_entries_export,
+                                  get_entry_by_index, list_entries,
                                   resolve_export_start_date, update_streak)
 
 
@@ -40,6 +41,7 @@ def test_create_entry_resets_daily_reminders(session, user):
     session.commit()
 
     assert entry.user_id == user.id
+    assert entry.entry_index == "d1"
     assert user.daily_reminder_date == date(2024, 1, 2)
     assert user.daily_reminder_stage == 0
 
@@ -79,6 +81,7 @@ def test_list_entries_filters_by_created_from(session, user):
         user_id=user.id,
         entry_type=EntryType.daily,
         entry_date=date(2024, 1, 1),
+        entry_index="d1",
         text="old",
         created_at=datetime(2024, 1, 1, 10, 0, 0),
     )
@@ -86,6 +89,7 @@ def test_list_entries_filters_by_created_from(session, user):
         user_id=user.id,
         entry_type=EntryType.daily,
         entry_date=date(2024, 2, 1),
+        entry_index="d2",
         text="new",
         created_at=datetime(2024, 2, 1, 10, 0, 0),
     )
@@ -97,3 +101,32 @@ def test_list_entries_filters_by_created_from(session, user):
     )
 
     assert [entry.text for entry in entries] == ["new"]
+
+
+def test_entry_index_and_attachments_export(session, user):
+    create_entry(
+        session=session,
+        user=user,
+        entry_type=EntryType.daily,
+        entry_date=date(2024, 2, 1),
+        text="С файлом",
+        mood=None,
+        question=None,
+        attachments=[
+            {
+                "type": "file",
+                "file_id": "file-id",
+                "file_name": "report.docx",
+                "extension": ".docx",
+            }
+        ],
+    )
+    session.commit()
+
+    entry = get_entry_by_index(session, user, "d1")
+    assert entry is not None
+    assert entry.attachments[0].file_name == "report.docx"
+
+    export = format_entries_export([entry])
+    assert "Индекс: d1" in export
+    assert "- report.docx" in export
