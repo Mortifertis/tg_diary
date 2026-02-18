@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models import AttachmentType, Entry, EntryAttachment, EntryType, User
 
@@ -112,7 +112,11 @@ def list_entries(
     limit: int | None,
     created_from: date | None = None,
 ) -> list[Entry]:
-    query = session.query(Entry).filter(Entry.user_id == user.id)
+    query = (
+        session.query(Entry)
+        .options(selectinload(Entry.attachments))
+        .filter(Entry.user_id == user.id)
+    )
     if created_from is not None:
         query = query.filter(Entry.created_at >= created_from)
     query = query.order_by(Entry.created_at.desc(), Entry.id.desc())
@@ -148,6 +152,7 @@ def get_entry_by_index(
 ) -> Entry | None:
     return (
         session.query(Entry)
+        .options(selectinload(Entry.attachments))
         .filter(
             Entry.user_id == user.id,
             Entry.entry_index == entry_index,

@@ -130,3 +130,32 @@ def test_entry_index_and_attachments_export(session, user):
     export = format_entries_export([entry])
     assert "Индекс: d1" in export
     assert "- report.docx" in export
+
+
+def test_get_entry_by_index_preloads_attachments_for_detached_entry(
+    session, user
+):
+    create_entry(
+        session=session,
+        user=user,
+        entry_type=EntryType.user,
+        entry_date=date(2024, 2, 1),
+        text="С вложением",
+        mood=None,
+        question=None,
+        attachments=[
+            {
+                "type": "file",
+                "file_id": "file-id",
+                "file_name": "note.txt",
+                "extension": ".txt",
+            }
+        ],
+    )
+    session.commit()
+
+    entry = get_entry_by_index(session, user, "u1")
+    session.close()
+
+    assert entry is not None
+    assert entry.attachments[0].file_name == "note.txt"
