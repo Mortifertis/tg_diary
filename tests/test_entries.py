@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from app.models import Entry, EntryType
-from app.services.entries import (create_entry, format_entries_export,
-                                  get_entry_by_index, list_entries,
-                                  resolve_export_start_date, update_streak)
+from app.services.entries import (create_entry, delete_entry_by_index,
+                                  format_entries_export, get_entry_by_index,
+                                  list_entries, resolve_export_start_date,
+                                  update_entry_text, update_streak)
 from app.services.timezones import format_user_datetime
 
 
@@ -185,3 +186,49 @@ def test_format_user_datetime_converts_utc_to_user_timezone(user):
 
     created_at = datetime(2024, 2, 1, 13, 12, 0)
     assert format_user_datetime(user, created_at) == "2024-02-01 16:12:00"
+
+
+def test_update_entry_text_by_index(session, user):
+    create_entry(
+        session=session,
+        user=user,
+        entry_type=EntryType.user,
+        entry_date=date(2024, 2, 1),
+        text="Старый текст",
+        mood=None,
+        question=None,
+    )
+    session.commit()
+
+    entry = update_entry_text(session, user, "u1", "Новый текст")
+    session.commit()
+
+    assert entry is not None
+    assert entry.text == "Новый текст"
+
+
+def test_delete_entry_by_index(session, user):
+    create_entry(
+        session=session,
+        user=user,
+        entry_type=EntryType.user,
+        entry_date=date(2024, 2, 1),
+        text="Удалить меня",
+        mood=None,
+        question=None,
+        attachments=[
+            {
+                "type": "file",
+                "file_id": "file-id",
+                "file_name": "note.txt",
+                "extension": ".txt",
+            }
+        ],
+    )
+    session.commit()
+
+    is_deleted = delete_entry_by_index(session, user, "u1")
+    session.commit()
+
+    assert is_deleted is True
+    assert get_entry_by_index(session, user, "u1") is None

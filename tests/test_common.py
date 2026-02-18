@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from app.handlers.common import _format_recent_entries
+from app.handlers.common import (_format_manage_entries_preview,
+                                 _format_recent_entries)
 from app.models import AttachmentType, Entry, EntryAttachment, EntryType, User
 
 
@@ -36,3 +37,18 @@ def test_format_recent_entries_shows_local_time_and_attachments() -> None:
 
     assert "2024-02-01 16:12:00" in formatted
     assert "Вложения: entries_week.txt" in formatted
+
+
+def test_format_manage_entries_preview_truncates_text() -> None:
+    entry = Entry(
+        entry_type=EntryType.user,
+        entry_index="u11",
+        entry_date=date(2024, 2, 1),
+        text="a" * 101,
+        created_at=datetime(2024, 2, 1, 13, 12, 0),
+    )
+
+    formatted = _format_manage_entries_preview([entry])
+
+    assert "[u11]" in formatted
+    assert "..." in formatted

@@ -4,6 +4,8 @@ from aiogram.fsm.state import State, StatesGroup
 class EntryState(StatesGroup):
     waiting_text = State()
     waiting_entry_index = State()
+    waiting_manage_entry_index = State()
+    waiting_manage_entry_edit_text = State()
 
 
 class SettingsState(StatesGroup):

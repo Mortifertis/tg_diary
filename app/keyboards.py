@@ -6,13 +6,16 @@ from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
 from app.constants import (EXPORT_3_MONTHS, EXPORT_ALL, EXPORT_BACK,
                            EXPORT_INDEX_CALLBACK, EXPORT_MONTH,
                            EXPORT_VIEW_BY_INDEX, EXPORT_WEEK, EXPORT_YEAR,
+                           MANAGE_DELETE_PREFIX, MANAGE_EDIT_PREFIX,
+                           MANAGE_ENTRIES_DELETE, MANAGE_ENTRIES_EDIT,
+                           MANAGE_ENTRIES_MORE, MANAGE_SHOW_MORE_PREFIX,
                            MENU_BACK, MENU_CREATE_ENTRY, MENU_DAILY,
-                           MENU_DAILY_QUESTIONS, MENU_MONTHLY,
-                           MENU_QUESTIONS_ADD, MENU_QUESTIONS_DELETE,
-                           MENU_QUESTIONS_PAUSE, MENU_QUESTIONS_RESET,
-                           MENU_QUESTIONS_RESUME, MENU_SETTINGS,
-                           MENU_VIEW_ENTRIES, MENU_WEEKLY, MOOD_BAD_LABEL,
-                           MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL)
+                           MENU_DAILY_QUESTIONS, MENU_MANAGE_ENTRIES,
+                           MENU_MONTHLY, MENU_QUESTIONS_ADD,
+                           MENU_QUESTIONS_DELETE, MENU_QUESTIONS_PAUSE,
+                           MENU_QUESTIONS_RESET, MENU_QUESTIONS_RESUME,
+                           MENU_SETTINGS, MENU_VIEW_ENTRIES, MENU_WEEKLY,
+                           MOOD_BAD_LABEL, MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL)
 
 MOOD_KEYBOARD = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -36,9 +39,41 @@ MAIN_MENU_KEYBOARD = ReplyKeyboardMarkup(
         [KeyboardButton(text=MENU_CREATE_ENTRY)],
         [KeyboardButton(text=MENU_SETTINGS)],
         [KeyboardButton(text=MENU_VIEW_ENTRIES)],
+        [KeyboardButton(text=MENU_MANAGE_ENTRIES)],
     ],
     resize_keyboard=True,
 )
+
+
+def manage_entries_page_keyboard(offset: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=MANAGE_ENTRIES_MORE,
+                    callback_data=f"{MANAGE_SHOW_MORE_PREFIX}{offset}",
+                )
+            ]
+        ]
+    )
+
+
+def manage_entries_actions_keyboard(entry_index: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=MANAGE_ENTRIES_EDIT,
+                    callback_data=f"{MANAGE_EDIT_PREFIX}{entry_index}",
+                ),
+                InlineKeyboardButton(
+                    text=MANAGE_ENTRIES_DELETE,
+                    callback_data=f"{MANAGE_DELETE_PREFIX}{entry_index}",
+                ),
+            ]
+        ]
+    )
+
 
 REMINDER_SETTINGS_KEYBOARD = ReplyKeyboardMarkup(
     keyboard=[

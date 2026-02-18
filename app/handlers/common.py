@@ -16,25 +16,37 @@ from app.constants import (DAILY_PROMPT_SUFFIX,
                            EXPORT_ALL, EXPORT_CALLBACK_PREFIX,
                            EXPORT_DONE_TEMPLATE, EXPORT_INDEX_CALLBACK,
                            EXPORT_MENU_PROMPT, EXPORT_MONTH, EXPORT_NO_ENTRIES,
-                           EXPORT_WEEK, EXPORT_YEAR, MANUAL_ENTRY_PROMPT,
-                           MENU_BACK, MENU_CREATE_ENTRY, MENU_SETTINGS,
-                           MENU_VIEW_ENTRIES, MOOD_BAD_ICON, MOOD_GOOD_ICON,
-                           MOOD_NEUTRAL_ICON, MOOD_SAVED_MESSAGE,
-                           NEED_START_MESSAGE, RECENT_ENTRIES_EMPTY,
-                           RECENT_ENTRIES_HEADER, SETTINGS_MENU_MESSAGE,
-                           START_MESSAGE, STATS_MOOD_TEMPLATE,
-                           STATS_STREAK_TEMPLATE, STATS_TOTAL_TEMPLATE,
-                           STATUS_DAILY_TEMPLATE, STATUS_HEADER,
-                           STATUS_MONTHLY_TEMPLATE,
+                           EXPORT_WEEK, EXPORT_YEAR, MANAGE_DELETE_PREFIX,
+                           MANAGE_EDIT_PREFIX, MANAGE_ENTRIES_ACTIONS_PROMPT,
+                           MANAGE_ENTRIES_DELETED, MANAGE_ENTRIES_EMPTY,
+                           MANAGE_ENTRIES_HEADER, MANAGE_ENTRIES_PAGE_END,
+                           MANAGE_ENTRIES_PREVIEW_LIMIT,
+                           MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT,
+                           MANAGE_ENTRIES_PROMPT,
+                           MANAGE_ENTRIES_TEXT_EDIT_PROMPT,
+                           MANAGE_ENTRIES_TEXT_EMPTY, MANAGE_ENTRIES_UPDATED,
+                           MANAGE_SHOW_MORE_PREFIX, MANUAL_ENTRY_PROMPT,
+                           MENU_BACK, MENU_CREATE_ENTRY, MENU_MANAGE_ENTRIES,
+                           MENU_SETTINGS, MENU_VIEW_ENTRIES, MOOD_BAD_ICON,
+                           MOOD_GOOD_ICON, MOOD_NEUTRAL_ICON,
+                           MOOD_SAVED_MESSAGE, NEED_START_MESSAGE,
+                           RECENT_ENTRIES_EMPTY, RECENT_ENTRIES_HEADER,
+                           SETTINGS_MENU_MESSAGE, START_MESSAGE,
+                           STATS_MOOD_TEMPLATE, STATS_STREAK_TEMPLATE,
+                           STATS_TOTAL_TEMPLATE, STATUS_DAILY_TEMPLATE,
+                           STATUS_HEADER, STATUS_MONTHLY_TEMPLATE,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE)
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
-                           MOOD_KEYBOARD, REMINDER_SETTINGS_KEYBOARD)
+                           MOOD_KEYBOARD, REMINDER_SETTINGS_KEYBOARD,
+                           manage_entries_actions_keyboard,
+                           manage_entries_page_keyboard)
 from app.models import Entry, EntryType, User
 from app.questions import DAILY_QUESTIONS, pick_question
-from app.services.entries import (count_entries, format_entries_export,
-                                  get_entry_by_index, list_entries,
-                                  mood_breakdown, resolve_export_start_date)
+from app.services.entries import (count_entries, delete_entry_by_index,
+                                  format_entries_export, get_entry_by_index,
+                                  list_entries, mood_breakdown,
+                                  resolve_export_start_date, update_entry_text)
 from app.services.questions import (ensure_default_daily_questions,
                                     list_active_daily_questions)
 from app.services.timezones import (format_user_datetime, local_date_for_user,
@@ -62,6 +74,51 @@ def _format_recent_entries(entries: list[Entry], user: User) -> str:
             )
         )
     return "\n\n".join(lines)
+
+
+def _shorten_entry_text(text: str) -> str:
+    if len(text) <= MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT:
+        return text
+    limit = MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT
+    return f"{text[:limit]}..."
+
+
+def _format_manage_entries_preview(entries: list[Entry]) -> str:
+    lines = [MANAGE_ENTRIES_HEADER]
+    for entry in entries:
+        preview = _shorten_entry_text(entry.text)
+        lines.append(f"[{entry.entry_index}] {preview}")
+    return "\n\n".join(lines)
+
+
+async def _send_entry_details(
+    message: Message,
+    user: User,
+    entry: Entry,
+) -> None:
+    header = ENTRY_DETAILS_HEADER_TEMPLATE.format(
+        entry_index=entry.entry_index,
+        created_at=format_user_datetime(user, entry.created_at),
+        entry_type=entry.entry_type.value,
+        entry_date=entry.entry_date.strftime("%Y-%m-%d"),
+    )
+    await message.answer(
+        f"{header}\n{ENTRY_DETAILS_TEXT_TEMPLATE.format(text=entry.text)}"
+    )
+
+    if entry.attachments:
+        await message.answer(ENTRY_DETAILS_ATTACHMENTS_HEADER)
+        for attachment in entry.attachments:
+            if attachment.attachment_type.value == "image":
+                await message.answer_photo(
+                    photo=attachment.file_id,
+                    caption=attachment.file_name,
+                )
+            else:
+                await message.answer_document(
+                    document=attachment.file_id,
+                    caption=attachment.file_name,
+                )
 
 
 @router.message(CommandStart())
@@ -254,6 +311,88 @@ async def view_entries(message: Message) -> None:
     )
 
 
+@router.message(F.text == MENU_MANAGE_ENTRIES)
+async def manage_entries(message: Message, state: FSMContext) -> None:
+    with get_session(message.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        preview_entries = list_entries(
+            session,
+            user,
+            limit=MANAGE_ENTRIES_PREVIEW_LIMIT,
+        )
+        total_entries = count_entries(session, user)
+
+    if not preview_entries:
+        await message.answer(MANAGE_ENTRIES_EMPTY)
+        return
+
+    await state.set_state(EntryState.waiting_manage_entry_index)
+    await message.answer(_format_manage_entries_preview(preview_entries))
+
+    if total_entries > MANAGE_ENTRIES_PREVIEW_LIMIT:
+        await message.answer(
+            MANAGE_ENTRIES_PROMPT,
+            reply_markup=manage_entries_page_keyboard(
+                MANAGE_ENTRIES_PREVIEW_LIMIT,
+            ),
+        )
+        return
+
+    await message.answer(MANAGE_ENTRIES_PROMPT)
+
+
+@router.callback_query(F.data.startswith(MANAGE_SHOW_MORE_PREFIX))
+async def show_more_manage_entries(callback: CallbackQuery) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
+
+    offset_text = callback.data.replace(MANAGE_SHOW_MORE_PREFIX, "", 1)
+    if not offset_text.isdigit():
+        await callback.answer()
+        return
+    offset = int(offset_text)
+
+    with get_session(callback.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=callback.from_user.id)
+            .first()
+        )
+        if not user:
+            if callback.message:
+                await callback.message.answer(NEED_START_MESSAGE)
+            await callback.answer()
+            return
+        entries = list_entries(session, user, limit=None)
+
+    chunk = entries[offset:offset + MANAGE_ENTRIES_PREVIEW_LIMIT]
+    if not chunk:
+        if callback.message:
+            await callback.message.answer(MANAGE_ENTRIES_PAGE_END)
+        await callback.answer()
+        return
+
+    if callback.message:
+        await callback.message.answer(_format_manage_entries_preview(chunk))
+        next_offset = offset + MANAGE_ENTRIES_PREVIEW_LIMIT
+        if next_offset < len(entries):
+            await callback.message.answer(
+                MANAGE_ENTRIES_PROMPT,
+                reply_markup=manage_entries_page_keyboard(next_offset),
+            )
+        else:
+            await callback.message.answer(MANAGE_ENTRIES_PROMPT)
+    await callback.answer()
+
+
 def _resolve_period_label(period: str) -> str | None:
     period_labels = {
         "week": EXPORT_WEEK,
@@ -355,31 +494,125 @@ async def show_entry_by_index(message: Message, state: FSMContext) -> None:
         )
         return
 
-    header = ENTRY_DETAILS_HEADER_TEMPLATE.format(
-        entry_index=entry.entry_index,
-        created_at=format_user_datetime(user, entry.created_at),
-        entry_type=entry.entry_type.value,
-        entry_date=entry.entry_date.strftime("%Y-%m-%d"),
-    )
-    await message.answer(
-        f"{header}\n{ENTRY_DETAILS_TEXT_TEMPLATE.format(text=entry.text)}"
-    )
-
-    if entry.attachments:
-        await message.answer(ENTRY_DETAILS_ATTACHMENTS_HEADER)
-        for attachment in entry.attachments:
-            if attachment.attachment_type.value == "image":
-                await message.answer_photo(
-                    photo=attachment.file_id,
-                    caption=attachment.file_name,
-                )
-            else:
-                await message.answer_document(
-                    document=attachment.file_id,
-                    caption=attachment.file_name,
-                )
+    await _send_entry_details(message, user, entry)
 
     await state.clear()
+
+
+@router.message(EntryState.waiting_manage_entry_index)
+async def manage_entry_by_index(message: Message, state: FSMContext) -> None:
+    entry_index = (message.text or "").strip().lower()
+    if not entry_index:
+        await message.answer(ENTRY_INDEX_INVALID_MESSAGE)
+        return
+
+    with get_session(message.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        entry = get_entry_by_index(session, user, entry_index)
+
+    if not entry:
+        await message.answer(
+            ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+        )
+        return
+
+    await _send_entry_details(message, user, entry)
+    await message.answer(
+        MANAGE_ENTRIES_ACTIONS_PROMPT,
+        reply_markup=manage_entries_actions_keyboard(entry_index),
+    )
+
+
+@router.callback_query(F.data.startswith(MANAGE_EDIT_PREFIX))
+async def start_edit_entry(callback: CallbackQuery, state: FSMContext) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
+    entry_index = callback.data.replace(MANAGE_EDIT_PREFIX, "", 1)
+    await state.set_state(EntryState.waiting_manage_entry_edit_text)
+    await state.update_data(manage_entry_index=entry_index)
+    if callback.message:
+        await callback.message.answer(MANAGE_ENTRIES_TEXT_EDIT_PROMPT)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith(MANAGE_DELETE_PREFIX))
+async def delete_entry(callback: CallbackQuery, state: FSMContext) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
+    entry_index = callback.data.replace(MANAGE_DELETE_PREFIX, "", 1)
+
+    with get_session(callback.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=callback.from_user.id)
+            .first()
+        )
+        if not user:
+            if callback.message:
+                await callback.message.answer(NEED_START_MESSAGE)
+            await callback.answer()
+            return
+        is_deleted = delete_entry_by_index(session, user, entry_index)
+
+    if callback.message:
+        if is_deleted:
+            await callback.message.answer(MANAGE_ENTRIES_DELETED)
+        else:
+            await callback.message.answer(
+                ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+            )
+    await callback.answer()
+    await state.set_state(EntryState.waiting_manage_entry_index)
+
+
+@router.message(EntryState.waiting_manage_entry_edit_text)
+async def update_entry(message: Message, state: FSMContext) -> None:
+    text = (message.text or "").strip()
+    if not text:
+        await message.answer(MANAGE_ENTRIES_TEXT_EMPTY)
+        return
+
+    data = await state.get_data()
+    entry_index = data.get("manage_entry_index")
+    if not entry_index:
+        await message.answer(ENTRY_INDEX_INVALID_MESSAGE)
+        await state.set_state(EntryState.waiting_manage_entry_index)
+        return
+
+    with get_session(message.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        entry = update_entry_text(session, user, entry_index, text)
+
+    if not entry:
+        await message.answer(
+            ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+        )
+        await state.set_state(EntryState.waiting_manage_entry_index)
+        return
+
+    await message.answer(MANAGE_ENTRIES_UPDATED)
+    await _send_entry_details(message, user, entry)
+    await message.answer(
+        MANAGE_ENTRIES_ACTIONS_PROMPT,
+        reply_markup=manage_entries_actions_keyboard(entry_index),
+    )
+    await state.set_state(EntryState.waiting_manage_entry_index)
 
 
 @router.callback_query(F.data.startswith("mood:"))

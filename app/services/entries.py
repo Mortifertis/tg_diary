@@ -163,6 +163,28 @@ def get_entry_by_index(
     )
 
 
+def update_entry_text(
+    session: Session, user: User, entry_index: str, text: str
+) -> Entry | None:
+    entry = get_entry_by_index(session, user, entry_index)
+    if not entry:
+        return None
+    entry.text = text
+    session.flush()
+    return entry
+
+
+def delete_entry_by_index(
+    session: Session, user: User, entry_index: str
+) -> bool:
+    entry = get_entry_by_index(session, user, entry_index)
+    if not entry:
+        return False
+    session.delete(entry)
+    session.flush()
+    return True
+
+
 def resolve_export_start_date(period: str, today: date) -> date | None:
     period_days = {
         "week": 7,

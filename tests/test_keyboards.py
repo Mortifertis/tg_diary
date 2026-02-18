@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from app.constants import (EXPORT_VIEW_BY_INDEX, MENU_CREATE_ENTRY,
-                           MENU_QUESTIONS_RESET, MENU_SETTINGS,
-                           MENU_VIEW_ENTRIES)
+                           MENU_MANAGE_ENTRIES, MENU_QUESTIONS_RESET,
+                           MENU_SETTINGS, MENU_VIEW_ENTRIES)
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
                            QUESTIONS_SETTINGS_KEYBOARD)
 
@@ -12,7 +12,12 @@ def test_main_menu_contains_new_structure() -> None:
         button.text for row in MAIN_MENU_KEYBOARD.keyboard for button in row
     ]
 
-    assert texts == [MENU_CREATE_ENTRY, MENU_SETTINGS, MENU_VIEW_ENTRIES]
+    assert texts == [
+        MENU_CREATE_ENTRY,
+        MENU_SETTINGS,
+        MENU_VIEW_ENTRIES,
+        MENU_MANAGE_ENTRIES,
+    ]
 
 
 def test_questions_menu_contains_reset_button() -> None:

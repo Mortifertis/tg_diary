@@ -71,6 +71,26 @@ QUESTIONS_RESET_DEFAULTS_MESSAGE = (
 )
 RECENT_ENTRIES_EMPTY = "У вас пока нет записей."
 RECENT_ENTRIES_HEADER = "Последние 3 записи:"
+MANAGE_ENTRIES_HEADER = "Последние записи (предпросмотр):"
+MANAGE_ENTRIES_PROMPT = (
+    "Введите индекс записи, которую хотите редактировать "
+    "или удалить (например, d1)."
+)
+MANAGE_ENTRIES_EMPTY = "У вас пока нет записей для редактирования."
+MANAGE_ENTRIES_MORE = "Показать ещё"
+MANAGE_ENTRIES_ACTIONS_PROMPT = "Выберите действие с записью:"
+MANAGE_ENTRIES_EDIT = "Редактировать"
+MANAGE_ENTRIES_DELETE = "Удалить"
+MANAGE_ENTRIES_TEXT_EDIT_PROMPT = "Отправьте новый текст записи."
+MANAGE_ENTRIES_TEXT_EMPTY = "Текст записи не должен быть пустым."
+MANAGE_ENTRIES_UPDATED = "Запись обновлена."
+MANAGE_ENTRIES_DELETED = "Запись удалена."
+MANAGE_ENTRIES_PAGE_END = "Больше записей нет."
+MANAGE_ENTRIES_PREVIEW_LIMIT = 10
+MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT = 100
+MANAGE_SHOW_MORE_PREFIX = "manage:page:"
+MANAGE_EDIT_PREFIX = "manage:edit:"
+MANAGE_DELETE_PREFIX = "manage:delete:"
 
 ENTRY_MEDIA_MAX_IMAGES = 5
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
@@ -124,6 +144,7 @@ MENU_SETTINGS = "Настройки"
 MENU_PAUSE = "Остановить напоминания"
 MENU_RESUME = "Возобновить напоминания"
 MENU_VIEW_ENTRIES = "Посмотреть записи"
+MENU_MANAGE_ENTRIES = "Редактирование/удаление записей"
 MENU_BACK = "Назад в главное меню"
 MENU_DAILY = "Ежедневные напоминания"
 MENU_WEEKLY = "Еженедельные напоминания"
