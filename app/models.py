@@ -56,7 +56,7 @@ class Entry(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    entry_type = Column(Enum(EntryType), nullable=False)
+    entry_type: Column[EntryType] = Column(Enum(EntryType), nullable=False)
     entry_index = Column(String(16), nullable=False)
     entry_date = Column(Date, nullable=False)
     question = Column(String(255))
@@ -82,7 +82,9 @@ class EntryAttachment(Base):
 
     id = Column(Integer, primary_key=True)
     entry_id = Column(Integer, ForeignKey("entries.id"), nullable=False)
-    attachment_type = Column(Enum(AttachmentType), nullable=False)
+    attachment_type: Column[AttachmentType] = Column(
+        Enum(AttachmentType), nullable=False
+    )
     file_id = Column(String(255), nullable=False)
     file_name = Column(String(255), nullable=False)
     extension = Column(String(16), nullable=False)
@@ -101,7 +103,7 @@ class UserQuestion(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    entry_type = Column(Enum(EntryType), nullable=False)
+    entry_type: Column[EntryType] = Column(Enum(EntryType), nullable=False)
     text = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)

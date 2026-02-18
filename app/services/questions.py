@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from sqlalchemy.orm import Session
 
 from app.models import EntryType, User, UserQuestion
@@ -12,7 +14,9 @@ def ensure_default_daily_questions(session: Session, user: User) -> None:
         entry_type=EntryType.daily,
         is_default=True,
     )
-    existing_defaults = {row.text for row in existing_default_rows.all()}
+    existing_defaults = {
+        cast(str, row.text) for row in existing_default_rows.all()
+    }
 
     for question in DAILY_QUESTIONS:
         if question in existing_defaults:
@@ -54,7 +58,7 @@ def list_active_daily_questions(session: Session, user: User) -> list[str]:
         .filter_by(user_id=user.id, entry_type=EntryType.daily, is_active=True)
         .all()
     )
-    return [row.text for row in rows]
+    return [cast(str, row.text) for row in rows]
 
 
 def add_daily_question(session: Session, user: User, text: str) -> bool:
@@ -117,5 +121,5 @@ def set_daily_question_active(
     )
     if not question:
         return False
-    question.is_active = is_active
+    setattr(question, "is_active", is_active)
     return True

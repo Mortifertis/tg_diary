@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from typing import cast
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
@@ -42,23 +43,29 @@ def due_daily_reminders(
     if has_entry_for_date(session, user, EntryType.daily, entry_date):
         return []
 
-    scheduled = _local_datetime(entry_date, user.daily_time, user.timezone)
+    daily_time = cast(str, user.daily_time)
+    timezone = cast(str, user.timezone)
+    scheduled = _local_datetime(entry_date, daily_time, timezone)
     evening_time = datetime.combine(
         entry_date,
-        time(reminder_evening_hour, 0, tzinfo=ZoneInfo(user.timezone)),
+        time(reminder_evening_hour, 0, tzinfo=ZoneInfo(timezone)),
     )
     due = []
 
-    if user.daily_reminder_date != entry_date:
-        user.daily_reminder_date = entry_date
-        user.daily_reminder_stage = 0
+    daily_reminder_date = cast(date | None, user.daily_reminder_date)
+    daily_reminder_stage = cast(int, user.daily_reminder_stage)
 
-    if user.daily_reminder_stage == 0 and now >= scheduled:
+    if daily_reminder_date != entry_date:
+        setattr(user, "daily_reminder_date", entry_date)
+        setattr(user, "daily_reminder_stage", 0)
+        daily_reminder_stage = 0
+
+    if daily_reminder_stage == 0 and now >= scheduled:
         due.append(
             Reminder(user=user, entry_type=EntryType.daily, due_at=scheduled)
         )
-        user.daily_reminder_stage = 1
-    elif user.daily_reminder_stage == 1 and now >= scheduled + timedelta(
+        setattr(user, "daily_reminder_stage", 1)
+    elif daily_reminder_stage == 1 and now >= scheduled + timedelta(
         hours=1
     ):
         due.append(
@@ -68,14 +75,14 @@ def due_daily_reminders(
                 due_at=scheduled + timedelta(hours=1),
             )
         )
-        user.daily_reminder_stage = 2
-    elif user.daily_reminder_stage == 2 and now >= evening_time:
+        setattr(user, "daily_reminder_stage", 2)
+    elif daily_reminder_stage == 2 and now >= evening_time:
         due.append(
             Reminder(
                 user=user, entry_type=EntryType.daily, due_at=evening_time
             )
         )
-        user.daily_reminder_stage = 3
+        setattr(user, "daily_reminder_stage", 3)
 
     return due
 
@@ -87,14 +94,17 @@ def due_weekly_reminder(
         return []
 
     local_day = now.weekday()
-    if local_day != user.weekly_day:
+    weekly_day = cast(int, user.weekly_day)
+    if local_day != weekly_day:
         return []
 
     entry_date = now.date()
     if has_entry_for_date(session, user, EntryType.weekly, entry_date):
         return []
 
-    scheduled = _local_datetime(entry_date, user.weekly_time, user.timezone)
+    weekly_time = cast(str, user.weekly_time)
+    timezone = cast(str, user.timezone)
+    scheduled = _local_datetime(entry_date, weekly_time, timezone)
     if now >= scheduled:
         return [
             Reminder(user=user, entry_type=EntryType.weekly, due_at=scheduled)
@@ -108,14 +118,17 @@ def due_monthly_reminder(
     if user.pause_until and now.date() <= user.pause_until:
         return []
 
-    if now.day != user.monthly_day:
+    monthly_day = cast(int, user.monthly_day)
+    if now.day != monthly_day:
         return []
 
     entry_date = now.date()
     if has_entry_for_date(session, user, EntryType.monthly, entry_date):
         return []
 
-    scheduled = _local_datetime(entry_date, user.monthly_time, user.timezone)
+    monthly_time = cast(str, user.monthly_time)
+    timezone = cast(str, user.timezone)
+    scheduled = _local_datetime(entry_date, monthly_time, timezone)
     if now >= scheduled:
         return [
             Reminder(user=user, entry_type=EntryType.monthly, due_at=scheduled)

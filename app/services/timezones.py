@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time
+from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.models import User
@@ -10,7 +11,7 @@ UTC_ZONE = ZoneInfo("UTC")
 
 def _resolve_user_timezone(user: User) -> ZoneInfo:
     try:
-        return ZoneInfo(user.timezone)
+        return ZoneInfo(cast(str, user.timezone))
     except ZoneInfoNotFoundError:
         return UTC_ZONE
 
