@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -78,12 +78,16 @@ def has_entry_for_date(session: Session, user: User, entry_type: EntryType, entr
     )
 
 
-def list_entries(session: Session, user: User, limit: int | None) -> list[Entry]:
-    query = (
-        session.query(Entry)
-        .filter(Entry.user_id == user.id)
-        .order_by(Entry.created_at.desc(), Entry.id.desc())
-    )
+def list_entries(
+    session: Session,
+    user: User,
+    limit: int | None,
+    created_from: date | None = None,
+) -> list[Entry]:
+    query = session.query(Entry).filter(Entry.user_id == user.id)
+    if created_from is not None:
+        query = query.filter(Entry.created_at >= created_from)
+    query = query.order_by(Entry.created_at.desc(), Entry.id.desc())
     if limit is not None:
         query = query.limit(limit)
     return query.all()
@@ -102,3 +106,18 @@ def format_entries_export(entries: list[Entry]) -> str:
         lines.append(f"Текст: {entry.text}")
         lines.append("-" * 40)
     return "\n".join(lines)
+
+
+def resolve_export_start_date(period: str, today: date) -> date | None:
+    period_days = {
+        "week": 7,
+        "month": 30,
+        "3months": 90,
+        "year": 365,
+    }
+    if period == "all":
+        return None
+    days = period_days.get(period)
+    if days is None:
+        return None
+    return today - timedelta(days=days)

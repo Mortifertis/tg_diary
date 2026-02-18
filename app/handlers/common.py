@@ -7,24 +7,28 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
-from app.constants import (DAILY_PROMPT_SUFFIX, EXPORT_CAPTION,
-                           MANUAL_ENTRY_PROMPT, MENU_BACK, MENU_CREATE_ENTRY,
-                           MENU_SET_REMINDERS, MENU_VIEW_ENTRIES,
-                           MOOD_BAD_ICON, MOOD_GOOD_ICON, MOOD_NEUTRAL_ICON,
-                           MOOD_SAVED_MESSAGE, NEED_START_MESSAGE,
-                           RECENT_ENTRIES_EMPTY, RECENT_ENTRIES_HEADER,
-                           SETTINGS_MENU_MESSAGE, START_MESSAGE,
-                           STATS_MOOD_TEMPLATE, STATS_STREAK_TEMPLATE,
-                           STATS_TOTAL_TEMPLATE, STATUS_DAILY_TEMPLATE,
-                           STATUS_HEADER, STATUS_MONTHLY_TEMPLATE,
+from app.constants import (DAILY_PROMPT_SUFFIX, EXPORT_3_MONTHS, EXPORT_ALL,
+                           EXPORT_CALLBACK_PREFIX, EXPORT_DONE_TEMPLATE,
+                           EXPORT_MENU_PROMPT, EXPORT_MONTH, EXPORT_NO_ENTRIES,
+                           EXPORT_WEEK, EXPORT_YEAR, MANUAL_ENTRY_PROMPT,
+                           MENU_BACK, MENU_CREATE_ENTRY, MENU_SET_REMINDERS,
+                           MENU_VIEW_ENTRIES, MOOD_BAD_ICON, MOOD_GOOD_ICON,
+                           MOOD_NEUTRAL_ICON, MOOD_SAVED_MESSAGE,
+                           NEED_START_MESSAGE, RECENT_ENTRIES_EMPTY,
+                           RECENT_ENTRIES_HEADER, SETTINGS_MENU_MESSAGE,
+                           START_MESSAGE, STATS_MOOD_TEMPLATE,
+                           STATS_STREAK_TEMPLATE, STATS_TOTAL_TEMPLATE,
+                           STATUS_DAILY_TEMPLATE, STATUS_HEADER,
+                           STATUS_MONTHLY_TEMPLATE,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE)
-from app.keyboards import (MAIN_MENU_KEYBOARD, MOOD_KEYBOARD,
-                           REMINDER_SETTINGS_KEYBOARD)
+from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
+                           MOOD_KEYBOARD, REMINDER_SETTINGS_KEYBOARD)
 from app.models import Entry, EntryType, User
 from app.questions import DAILY_QUESTIONS, pick_question
 from app.services.entries import (count_entries, format_entries_export,
-                                  list_entries, mood_breakdown)
+                                  list_entries, mood_breakdown,
+                                  resolve_export_start_date)
 from app.states import EntryState
 from app.storage import get_session
 
@@ -138,7 +142,7 @@ async def daily_prompt(message: Message, state: FSMContext) -> None:
 async def create_entry_from_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(EntryState.waiting_text)
     await state.update_data(
-        entry_type=EntryType.daily.value,
+        entry_type=EntryType.user.value,
         entry_date=date.today().isoformat(),
         question=None,
         mood=None,
@@ -168,7 +172,6 @@ async def view_entries(message: Message) -> None:
             await message.answer(NEED_START_MESSAGE)
             return
         recent_entries = list_entries(session, user, limit=3)
-        all_entries = list_entries(session, user, limit=None)
 
     if not recent_entries:
         await message.answer(RECENT_ENTRIES_EMPTY, reply_markup=MAIN_MENU_KEYBOARD)
@@ -178,11 +181,64 @@ async def view_entries(message: Message) -> None:
         _format_recent_entries(recent_entries),
         reply_markup=MAIN_MENU_KEYBOARD,
     )
+    await message.answer(EXPORT_MENU_PROMPT, reply_markup=EXPORT_ENTRIES_KEYBOARD)
 
-    export_text = format_entries_export(all_entries)
+
+def _resolve_period_label(period: str) -> str | None:
+    period_labels = {
+        "week": EXPORT_WEEK,
+        "month": EXPORT_MONTH,
+        "3months": EXPORT_3_MONTHS,
+        "year": EXPORT_YEAR,
+        "all": EXPORT_ALL,
+    }
+    return period_labels.get(period)
+
+
+@router.callback_query(F.data.startswith(EXPORT_CALLBACK_PREFIX))
+async def export_entries(callback: CallbackQuery) -> None:
+    if not callback.data:
+        await callback.answer()
+        return
+    period = callback.data.split(":", maxsplit=1)[1]
+    if period == "back":
+        await callback.answer()
+        if callback.message:
+            await callback.message.answer(
+                START_MESSAGE,
+                reply_markup=MAIN_MENU_KEYBOARD,
+            )
+        return
+
+    period_label = _resolve_period_label(period)
+    if period_label is None:
+        await callback.answer()
+        return
+
+    with get_session(callback.bot) as session:
+        user = session.query(User).filter_by(telegram_id=callback.from_user.id).first()
+        if not user:
+            if callback.message:
+                await callback.message.answer(NEED_START_MESSAGE)
+            await callback.answer()
+            return
+        created_from = resolve_export_start_date(period, date.today())
+        entries = list_entries(session, user, limit=None, created_from=created_from)
+
+    await callback.answer()
+    if not entries:
+        if callback.message:
+            await callback.message.answer(EXPORT_NO_ENTRIES)
+        return
+
+    export_text = format_entries_export(entries)
     export_bytes = export_text.encode("utf-8")
-    export_file = BufferedInputFile(export_bytes, filename="entries.txt")
-    await message.answer_document(export_file, caption=EXPORT_CAPTION)
+    export_file = BufferedInputFile(export_bytes, filename=f"entries_{period}.txt")
+    if callback.message:
+        await callback.message.answer_document(
+            export_file,
+            caption=EXPORT_DONE_TEMPLATE.format(period_label=period_label),
+        )
 
 
 @router.callback_query(F.data.startswith("mood:"))

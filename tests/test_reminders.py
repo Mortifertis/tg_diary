@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
-from app.models import EntryType
+from app.models import Entry, EntryType
 from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
                                     due_weekly_reminder)
 
@@ -90,3 +90,21 @@ def test_monthly_reminder_waits_for_time(session, user):
     on_time = datetime.combine(monthly_date, time(20, 0), tzinfo=ZoneInfo("UTC"))
     due = due_monthly_reminder(session, user, on_time)
     assert [item.entry_type for item in due] == [EntryType.monthly]
+
+
+def test_daily_reminder_ignores_user_entries(session, user):
+    day = date(2024, 1, 10)
+    session.add(
+        Entry(
+            user_id=user.id,
+            entry_type=EntryType.user,
+            entry_date=day,
+            text="manual",
+        )
+    )
+    session.commit()
+
+    now = datetime.combine(day, time(9, 30), tzinfo=ZoneInfo("UTC"))
+    due = due_daily_reminders(session, user, now, reminder_evening_hour=20)
+
+    assert [item.entry_type for item in due] == [EntryType.daily]
