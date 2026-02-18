@@ -1,1 +1,0 @@
-"""Telegram diary bot package."""

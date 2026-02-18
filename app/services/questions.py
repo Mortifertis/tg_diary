@@ -7,14 +7,16 @@ from app.questions import DAILY_QUESTIONS
 
 
 def ensure_default_daily_questions(session: Session, user: User) -> None:
-    existing = session.query(UserQuestion).filter_by(
+    existing_default_rows = session.query(UserQuestion.text).filter_by(
         user_id=user.id,
         entry_type=EntryType.daily,
+        is_default=True,
     )
-    if existing.first():
-        return
+    existing_defaults = {row.text for row in existing_default_rows.all()}
 
     for question in DAILY_QUESTIONS:
+        if question in existing_defaults:
+            continue
         session.add(
             UserQuestion(
                 user_id=user.id,
@@ -24,6 +26,15 @@ def ensure_default_daily_questions(session: Session, user: User) -> None:
                 is_active=True,
             )
         )
+
+
+def reset_daily_questions_to_default(session: Session, user: User) -> None:
+    (
+        session.query(UserQuestion)
+        .filter_by(user_id=user.id, entry_type=EntryType.daily)
+        .delete(synchronize_session=False)
+    )
+    ensure_default_daily_questions(session, user)
 
 
 def list_daily_questions(session: Session, user: User) -> list[UserQuestion]:
@@ -71,12 +82,18 @@ def add_daily_question(session: Session, user: User, text: str) -> bool:
     return True
 
 
-def delete_daily_question(session: Session, user: User, question_id: int) -> bool:
-    question = session.query(UserQuestion).filter_by(
-        id=question_id,
-        user_id=user.id,
-        entry_type=EntryType.daily,
-    ).first()
+def delete_daily_question(
+    session: Session, user: User, question_id: int
+) -> bool:
+    question = (
+        session.query(UserQuestion)
+        .filter_by(
+            id=question_id,
+            user_id=user.id,
+            entry_type=EntryType.daily,
+        )
+        .first()
+    )
     if not question:
         return False
     session.delete(question)
@@ -89,11 +106,15 @@ def set_daily_question_active(
     question_id: int,
     is_active: bool,
 ) -> bool:
-    question = session.query(UserQuestion).filter_by(
-        id=question_id,
-        user_id=user.id,
-        entry_type=EntryType.daily,
-    ).first()
+    question = (
+        session.query(UserQuestion)
+        .filter_by(
+            id=question_id,
+            user_id=user.id,
+            entry_type=EntryType.daily,
+        )
+        .first()
+    )
     if not question:
         return False
     question.is_active = is_active

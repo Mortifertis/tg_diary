@@ -16,8 +16,12 @@ WEEKLY_USAGE_MESSAGE = "Укажи день недели и время: 6 20:00 
 MONTHLY_USAGE_MESSAGE = "Укажи день месяца и время: 1 20:00"
 
 DAILY_TIME_UPDATED_TEMPLATE = "Ежедневное время обновлено: {time_value}"
-WEEKLY_TIME_UPDATED_TEMPLATE = "Еженедельное время обновлено: {day} {time_value}"
-MONTHLY_TIME_UPDATED_TEMPLATE = "Ежемесячное время обновлено: {day} {time_value}"
+WEEKLY_TIME_UPDATED_TEMPLATE = (
+    "Еженедельное время обновлено: {day} {time_value}"
+)
+MONTHLY_TIME_UPDATED_TEMPLATE = (
+    "Ежемесячное время обновлено: {day} {time_value}"
+)
 PAUSE_ENABLED_TEMPLATE = "Пауза включена до {pause_until}."
 PAUSE_DISABLED_MESSAGE = "Пауза снята."
 
@@ -49,7 +53,9 @@ QUESTIONS_LIST_HEADER = "Ежедневные вопросы:"
 QUESTIONS_EMPTY_MESSAGE = "У вас пока нет ежедневных вопросов."
 QUESTIONS_ADD_PROMPT = "Введите новый ежедневный вопрос одним сообщением."
 QUESTIONS_DELETE_PROMPT = "Введите ID вопроса, который нужно удалить."
-QUESTIONS_PAUSE_PROMPT = "Введите ID вопроса, который нужно поставить на паузу."
+QUESTIONS_PAUSE_PROMPT = (
+    "Введите ID вопроса, который нужно поставить на паузу."
+)
 QUESTIONS_RESUME_PROMPT = "Введите ID вопроса, который нужно возобновить."
 QUESTIONS_INVALID_ID_MESSAGE = "Некорректный ID вопроса."
 QUESTIONS_ADDED_MESSAGE = "Вопрос добавлен."
@@ -59,6 +65,10 @@ QUESTIONS_RESUMED_MESSAGE = "Вопрос снова активен."
 QUESTIONS_NOT_FOUND_MESSAGE = "Вопрос не найден."
 QUESTIONS_EMPTY_TEXT_MESSAGE = "Текст вопроса не должен быть пустым."
 QUESTIONS_DUPLICATE_MESSAGE = "Такой вопрос уже есть в списке."
+QUESTIONS_DEFAULT_TAG = "по умолчанию"
+QUESTIONS_RESET_DEFAULTS_MESSAGE = (
+    "Список вопросов сброшен к значениям по умолчанию."
+)
 RECENT_ENTRIES_EMPTY = "У вас пока нет записей."
 RECENT_ENTRIES_HEADER = "Последние 3 записи:"
 EXPORT_CAPTION = "Полный архив записей за всё время."
@@ -87,6 +97,7 @@ MENU_QUESTIONS_ADD = "Добавить вопрос"
 MENU_QUESTIONS_DELETE = "Удалить вопрос"
 MENU_QUESTIONS_PAUSE = "Пауза вопроса"
 MENU_QUESTIONS_RESUME = "Возобновить вопрос"
+MENU_QUESTIONS_RESET = "Сбросить к вопросам по умолчанию"
 
 MOOD_GOOD_LABEL = "🟢 Хорошо"
 MOOD_NEUTRAL_LABEL = "🟡 Нормально"

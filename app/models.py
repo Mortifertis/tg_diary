@@ -34,9 +34,13 @@ class User(Base):
     daily_reminder_date = Column(Date)
     daily_reminder_stage = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
-    entries = relationship("Entry", back_populates="user", cascade="all, delete-orphan")
+    entries = relationship(
+        "Entry", back_populates="user", cascade="all, delete-orphan"
+    )
     questions = relationship(
         "UserQuestion",
         back_populates="user",
@@ -62,7 +66,9 @@ class Entry(Base):
 class UserQuestion(Base):
     __tablename__ = "user_questions"
     __table_args__ = (
-        UniqueConstraint("user_id", "entry_type", "text", name="uq_user_question_text"),
+        UniqueConstraint(
+            "user_id", "entry_type", "text", name="uq_user_question_text"
+        ),
     )
 
     id = Column(Integer, primary_key=True)

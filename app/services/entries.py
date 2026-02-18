@@ -41,15 +41,21 @@ def update_streak(user: User, entry_date: date) -> None:
     user.last_entry_date = entry_date
 
 
-def reset_daily_reminders(user: User, entry_type: EntryType, entry_date: date) -> None:
+def reset_daily_reminders(
+    user: User, entry_type: EntryType, entry_date: date
+) -> None:
     if entry_type != EntryType.daily:
         return
     user.daily_reminder_date = entry_date
     user.daily_reminder_stage = 0
 
 
-def count_entries(session: Session, user: User, entry_type: EntryType | None = None) -> int:
-    query = session.query(func.count(Entry.id)).filter(Entry.user_id == user.id)
+def count_entries(
+    session: Session, user: User, entry_type: EntryType | None = None
+) -> int:
+    query = session.query(func.count(Entry.id)).filter(
+        Entry.user_id == user.id
+    )
     if entry_type:
         query = query.filter(Entry.entry_type == entry_type)
     return query.scalar() or 0
@@ -65,7 +71,9 @@ def mood_breakdown(session: Session, user: User) -> dict[str, int]:
     return {mood: count for mood, count in rows}
 
 
-def has_entry_for_date(session: Session, user: User, entry_type: EntryType, entry_date: date) -> bool:
+def has_entry_for_date(
+    session: Session, user: User, entry_type: EntryType, entry_date: date
+) -> bool:
     return (
         session.query(Entry.id)
         .filter(

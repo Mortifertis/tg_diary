@@ -12,7 +12,9 @@ from app.models import User
 def session():
     engine = create_engine("sqlite:///:memory:", future=True)
     Base.metadata.create_all(engine)
-    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+    SessionLocal = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, future=True
+    )
     with SessionLocal() as session:
         yield session
 

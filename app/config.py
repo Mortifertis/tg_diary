@@ -17,7 +17,6 @@ class Config:
     reminder_evening_hour: int
 
 
-
 def load_config() -> Config:
     return Config(
         bot_token=os.getenv("BOT_TOKEN", ""),

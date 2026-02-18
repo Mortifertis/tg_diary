@@ -44,7 +44,9 @@ def test_create_entry_resets_daily_reminders(session, user):
     assert user.daily_reminder_stage == 0
 
 
-def test_create_entry_with_user_type_does_not_reset_daily_reminders(session, user):
+def test_create_entry_with_user_type_does_not_reset_daily_reminders(
+    session, user
+):
     user.daily_reminder_date = date(2024, 1, 1)
     user.daily_reminder_stage = 2
 
@@ -90,6 +92,8 @@ def test_list_entries_filters_by_created_from(session, user):
     session.add_all([old_entry, new_entry])
     session.commit()
 
-    entries = list_entries(session, user, limit=None, created_from=date(2024, 1, 15))
+    entries = list_entries(
+        session, user, limit=None, created_from=date(2024, 1, 15)
+    )
 
     assert [entry.text for entry in entries] == ["new"]

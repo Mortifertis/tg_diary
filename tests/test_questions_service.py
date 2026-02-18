@@ -6,6 +6,7 @@ from app.services.questions import (add_daily_question, delete_daily_question,
                                     ensure_default_daily_questions,
                                     list_active_daily_questions,
                                     list_daily_questions,
+                                    reset_daily_questions_to_default,
                                     set_daily_question_active)
 
 
@@ -41,7 +42,10 @@ def test_add_delete_and_pause_daily_question(session, user) -> None:
     session.commit()
 
     assert deleted is True
-    assert session.query(UserQuestion).filter_by(text="Мой вопрос").first() is None
+    assert (
+        session.query(UserQuestion).filter_by(text="Мой вопрос").first()
+        is None
+    )
 
 
 def test_add_daily_question_rejects_duplicates(session, user) -> None:
@@ -51,3 +55,51 @@ def test_add_daily_question_rejects_duplicates(session, user) -> None:
     added = add_daily_question(session, user, DAILY_QUESTIONS[0])
 
     assert added is False
+
+
+def test_ensure_default_daily_questions_restores_missing_defaults(
+    session, user
+) -> None:
+    ensure_default_daily_questions(session, user)
+    session.commit()
+
+    first_default = (
+        session.query(UserQuestion)
+        .filter_by(
+            user_id=user.id,
+            text=DAILY_QUESTIONS[0],
+        )
+        .first()
+    )
+    assert first_default is not None
+    session.delete(first_default)
+    session.commit()
+
+    ensure_default_daily_questions(session, user)
+    session.commit()
+
+    restored = (
+        session.query(UserQuestion)
+        .filter_by(
+            user_id=user.id,
+            text=DAILY_QUESTIONS[0],
+            is_default=True,
+        )
+        .first()
+    )
+    assert restored is not None
+
+
+def test_reset_daily_questions_to_default(session, user) -> None:
+    ensure_default_daily_questions(session, user)
+    add_daily_question(session, user, "Мой вопрос")
+    session.commit()
+
+    reset_daily_questions_to_default(session, user)
+    session.commit()
+
+    questions = list_daily_questions(session, user)
+
+    assert len(questions) == len(DAILY_QUESTIONS)
+    assert all(question.is_default for question in questions)
+    assert all(question.is_active for question in questions)

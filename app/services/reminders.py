@@ -22,7 +22,9 @@ def _time_from_string(value: str) -> time:
     return time(hour=int(hour), minute=int(minute))
 
 
-def _local_datetime(local_date: date, time_str: str, timezone: str) -> datetime:
+def _local_datetime(
+    local_date: date, time_str: str, timezone: str
+) -> datetime:
     tz = ZoneInfo(timezone)
     return datetime.combine(local_date, _time_from_string(time_str), tzinfo=tz)
 
@@ -52,19 +54,35 @@ def due_daily_reminders(
         user.daily_reminder_stage = 0
 
     if user.daily_reminder_stage == 0 and now >= scheduled:
-        due.append(Reminder(user=user, entry_type=EntryType.daily, due_at=scheduled))
+        due.append(
+            Reminder(user=user, entry_type=EntryType.daily, due_at=scheduled)
+        )
         user.daily_reminder_stage = 1
-    elif user.daily_reminder_stage == 1 and now >= scheduled + timedelta(hours=1):
-        due.append(Reminder(user=user, entry_type=EntryType.daily, due_at=scheduled + timedelta(hours=1)))
+    elif user.daily_reminder_stage == 1 and now >= scheduled + timedelta(
+        hours=1
+    ):
+        due.append(
+            Reminder(
+                user=user,
+                entry_type=EntryType.daily,
+                due_at=scheduled + timedelta(hours=1),
+            )
+        )
         user.daily_reminder_stage = 2
     elif user.daily_reminder_stage == 2 and now >= evening_time:
-        due.append(Reminder(user=user, entry_type=EntryType.daily, due_at=evening_time))
+        due.append(
+            Reminder(
+                user=user, entry_type=EntryType.daily, due_at=evening_time
+            )
+        )
         user.daily_reminder_stage = 3
 
     return due
 
 
-def due_weekly_reminder(session: Session, user: User, now: datetime) -> list[Reminder]:
+def due_weekly_reminder(
+    session: Session, user: User, now: datetime
+) -> list[Reminder]:
     if user.pause_until and now.date() <= user.pause_until:
         return []
 
@@ -78,11 +96,15 @@ def due_weekly_reminder(session: Session, user: User, now: datetime) -> list[Rem
 
     scheduled = _local_datetime(entry_date, user.weekly_time, user.timezone)
     if now >= scheduled:
-        return [Reminder(user=user, entry_type=EntryType.weekly, due_at=scheduled)]
+        return [
+            Reminder(user=user, entry_type=EntryType.weekly, due_at=scheduled)
+        ]
     return []
 
 
-def due_monthly_reminder(session: Session, user: User, now: datetime) -> list[Reminder]:
+def due_monthly_reminder(
+    session: Session, user: User, now: datetime
+) -> list[Reminder]:
     if user.pause_until and now.date() <= user.pause_until:
         return []
 
@@ -95,5 +117,7 @@ def due_monthly_reminder(session: Session, user: User, now: datetime) -> list[Re
 
     scheduled = _local_datetime(entry_date, user.monthly_time, user.timezone)
     if now >= scheduled:
-        return [Reminder(user=user, entry_type=EntryType.monthly, due_at=scheduled)]
+        return [
+            Reminder(user=user, entry_type=EntryType.monthly, due_at=scheduled)
+        ]
     return []

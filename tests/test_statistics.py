@@ -57,8 +57,13 @@ def test_has_entry_for_date_and_reminder_skip(session, user):
     )
     session.commit()
 
-    assert has_entry_for_date(session, user, EntryType.daily, entry_date) is True
-    assert has_entry_for_date(session, user, EntryType.daily, date(2024, 1, 11)) is False
+    assert (
+        has_entry_for_date(session, user, EntryType.daily, entry_date) is True
+    )
+    assert (
+        has_entry_for_date(session, user, EntryType.daily, date(2024, 1, 11))
+        is False
+    )
 
     user.daily_reminder_stage = 2
     user.daily_reminder_date = entry_date

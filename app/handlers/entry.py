@@ -26,7 +26,11 @@ async def save_entry(message: Message, state: FSMContext) -> None:
     question_queue = data.get("question_queue") or []
 
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -43,7 +47,9 @@ async def save_entry(message: Message, state: FSMContext) -> None:
 
     if question_queue:
         next_question = question_queue.pop(0)
-        await state.update_data(question=next_question, question_queue=question_queue)
+        await state.update_data(
+            question=next_question, question_queue=question_queue
+        )
         await message.answer(build_prompt(entry_type, next_question))
         return
 

@@ -31,30 +31,48 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
             for user in users:
                 now = datetime.now(tz=ZoneInfo(user.timezone))
                 reminders = []
-                reminders.extend(due_daily_reminders(session, user, now, config.reminder_evening_hour))
+                reminders.extend(
+                    due_daily_reminders(
+                        session, user, now, config.reminder_evening_hour
+                    )
+                )
                 reminders.extend(due_weekly_reminder(session, user, now))
                 reminders.extend(due_monthly_reminder(session, user, now))
 
                 for reminder in reminders:
                     question_queue = []
                     if reminder.entry_type == EntryType.daily:
-                        daily_questions = list_active_daily_questions(session, user)
-                        question = pick_question(daily_questions or DAILY_QUESTIONS)
+                        daily_questions = list_active_daily_questions(
+                            session, user
+                        )
+                        question = pick_question(
+                            daily_questions or DAILY_QUESTIONS
+                        )
                     elif reminder.entry_type == EntryType.weekly:
-                        questions = pick_questions(WEEKLY_QUESTIONS, random.randint(4, 6))
+                        questions = pick_questions(
+                            WEEKLY_QUESTIONS, random.randint(4, 6)
+                        )
                         question = questions[0]
                         question_queue = questions[1:]
                     else:
-                        questions = pick_questions(MONTHLY_QUESTIONS, random.randint(6, 8))
+                        questions = pick_questions(
+                            MONTHLY_QUESTIONS, random.randint(6, 8)
+                        )
                         question = questions[0]
                         question_queue = questions[1:]
                     message = build_prompt(reminder.entry_type, question)
                     await bot.send_message(
                         chat_id=user.telegram_id,
                         text=message,
-                        reply_markup=MOOD_KEYBOARD if reminder.entry_type == EntryType.daily else None,
+                        reply_markup=MOOD_KEYBOARD
+                        if reminder.entry_type == EntryType.daily
+                        else None,
                     )
-                    key = StorageKey(bot_id=bot.id, chat_id=user.telegram_id, user_id=user.telegram_id)
+                    key = StorageKey(
+                        bot_id=bot.id,
+                        chat_id=user.telegram_id,
+                        user_id=user.telegram_id,
+                    )
                     await storage.set_state(key, EntryState.waiting_text)
                     await storage.update_data(
                         key,

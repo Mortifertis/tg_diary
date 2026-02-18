@@ -53,7 +53,11 @@ def _format_recent_entries(entries: list[Entry]) -> str:
 @router.message(CommandStart())
 async def start(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             from app.config import load_config
 
@@ -76,9 +80,15 @@ async def start(message: Message) -> None:
 @router.message(Command("stats"))
 async def stats(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
-            await message.answer(START_MESSAGE, reply_markup=MAIN_MENU_KEYBOARD)
+            await message.answer(
+                START_MESSAGE, reply_markup=MAIN_MENU_KEYBOARD
+            )
             return
         total = count_entries(session, user)
         mood_counts = mood_breakdown(session, user)
@@ -102,7 +112,11 @@ async def stats(message: Message) -> None:
 @router.message(Command("status"))
 async def status(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -117,11 +131,19 @@ async def status(message: Message) -> None:
         if pause_until
         else STATUS_PAUSE_INACTIVE
     )
+    weekly_status = STATUS_WEEKLY_TEMPLATE.format(
+        weekly_day=weekly_day,
+        weekly_time=weekly_time,
+    )
+    monthly_status = STATUS_MONTHLY_TEMPLATE.format(
+        monthly_day=monthly_day,
+        monthly_time=monthly_time,
+    )
     await message.answer(
         f"{STATUS_HEADER}\n"
         f"{STATUS_DAILY_TEMPLATE.format(daily_time=daily_time)}\n"
-        f"{STATUS_WEEKLY_TEMPLATE.format(weekly_day=weekly_day, weekly_time=weekly_time)}\n"
-        f"{STATUS_MONTHLY_TEMPLATE.format(monthly_day=monthly_day, monthly_time=monthly_time)}\n"
+        f"{weekly_status}\n"
+        f"{monthly_status}\n"
         f"{STATUS_PAUSE_TEMPLATE.format(pause=pause)}",
         reply_markup=MAIN_MENU_KEYBOARD,
     )
@@ -130,7 +152,11 @@ async def status(message: Message) -> None:
 @router.message(Command("daily"))
 async def daily_prompt(message: Message, state: FSMContext) -> None:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -145,7 +171,9 @@ async def daily_prompt(message: Message, state: FSMContext) -> None:
         mood=None,
         question_queue=[],
     )
-    await message.answer(f"{question}\n{DAILY_PROMPT_SUFFIX}", reply_markup=MOOD_KEYBOARD)
+    await message.answer(
+        f"{question}\n{DAILY_PROMPT_SUFFIX}", reply_markup=MOOD_KEYBOARD
+    )
 
 
 @router.message(F.text == MENU_CREATE_ENTRY)
@@ -177,21 +205,29 @@ async def back_to_main_menu(message: Message) -> None:
 @router.message(F.text == MENU_VIEW_ENTRIES)
 async def view_entries(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
         recent_entries = list_entries(session, user, limit=3)
 
     if not recent_entries:
-        await message.answer(RECENT_ENTRIES_EMPTY, reply_markup=MAIN_MENU_KEYBOARD)
+        await message.answer(
+            RECENT_ENTRIES_EMPTY, reply_markup=MAIN_MENU_KEYBOARD
+        )
         return
 
     await message.answer(
         _format_recent_entries(recent_entries),
         reply_markup=MAIN_MENU_KEYBOARD,
     )
-    await message.answer(EXPORT_MENU_PROMPT, reply_markup=EXPORT_ENTRIES_KEYBOARD)
+    await message.answer(
+        EXPORT_MENU_PROMPT, reply_markup=EXPORT_ENTRIES_KEYBOARD
+    )
 
 
 def _resolve_period_label(period: str) -> str | None:
@@ -226,14 +262,20 @@ async def export_entries(callback: CallbackQuery) -> None:
         return
 
     with get_session(callback.bot) as session:
-        user = session.query(User).filter_by(telegram_id=callback.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=callback.from_user.id)
+            .first()
+        )
         if not user:
             if callback.message:
                 await callback.message.answer(NEED_START_MESSAGE)
             await callback.answer()
             return
         created_from = resolve_export_start_date(period, date.today())
-        entries = list_entries(session, user, limit=None, created_from=created_from)
+        entries = list_entries(
+            session, user, limit=None, created_from=created_from
+        )
 
     await callback.answer()
     if not entries:
@@ -243,7 +285,9 @@ async def export_entries(callback: CallbackQuery) -> None:
 
     export_text = format_entries_export(entries)
     export_bytes = export_text.encode("utf-8")
-    export_file = BufferedInputFile(export_bytes, filename=f"entries_{period}.txt")
+    export_file = BufferedInputFile(
+        export_bytes, filename=f"entries_{period}.txt"
+    )
     if callback.message:
         await callback.message.answer_document(
             export_file,
