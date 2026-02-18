@@ -6,6 +6,7 @@ from app.models import Entry, EntryType
 from app.services.entries import (create_entry, format_entries_export,
                                   get_entry_by_index, list_entries,
                                   resolve_export_start_date, update_streak)
+from app.services.timezones import format_user_datetime
 
 
 def test_update_streak_tracks_consecutive_days(user):
@@ -159,3 +160,28 @@ def test_get_entry_by_index_preloads_attachments_for_detached_entry(
 
     assert entry is not None
     assert entry.attachments[0].file_name == "note.txt"
+
+
+def test_create_entry_allows_explicit_created_at(session, user):
+    created_at = datetime(2024, 2, 1, 8, 30, 0)
+
+    entry = create_entry(
+        session=session,
+        user=user,
+        entry_type=EntryType.user,
+        entry_date=date(2024, 2, 1),
+        text="Время из сообщения",
+        mood=None,
+        question=None,
+        created_at=created_at,
+    )
+    session.commit()
+
+    assert entry.created_at == created_at
+
+
+def test_format_user_datetime_converts_utc_to_user_timezone(user):
+    user.timezone = "Europe/Moscow"
+
+    created_at = datetime(2024, 2, 1, 13, 12, 0)
+    assert format_user_datetime(user, created_at) == "2024-02-01 16:12:00"

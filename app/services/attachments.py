@@ -19,12 +19,13 @@ def parse_attachments(message: Message) -> list[dict[str, str]]:
     if len(photos) > ENTRY_MEDIA_MAX_IMAGES:
         raise AttachmentValidationError("too_many_images")
 
-    for index, photo in enumerate(photos, start=1):
+    if photos:
+        photo = photos[-1]
         attachments.append(
             {
                 "type": "image",
                 "file_id": photo.file_id,
-                "file_name": f"image_{index}.jpg",
+                "file_name": "image_1.jpg",
                 "extension": ".jpg",
             }
         )

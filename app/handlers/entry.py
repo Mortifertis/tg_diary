@@ -15,6 +15,7 @@ from app.prompts import build_prompt
 from app.services.attachments import (AttachmentValidationError,
                                       has_entry_content, parse_attachments)
 from app.services.entries import create_entry
+from app.services.timezones import message_datetime_to_utc_naive
 from app.states import EntryState
 from app.storage import get_session
 
@@ -66,6 +67,7 @@ async def save_entry(message: Message, state: FSMContext) -> None:
             mood=mood,
             question=question,
             attachments=attachments,
+            created_at=message_datetime_to_utc_naive(message.date),
         )
     await message.answer(ENTRY_SAVED_MESSAGE)
 

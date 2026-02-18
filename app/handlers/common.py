@@ -37,20 +37,28 @@ from app.services.entries import (count_entries, format_entries_export,
                                   mood_breakdown, resolve_export_start_date)
 from app.services.questions import (ensure_default_daily_questions,
                                     list_active_daily_questions)
+from app.services.timezones import (format_user_datetime, local_date_for_user,
+                                    local_day_start_to_utc_naive)
 from app.states import EntryState
 from app.storage import get_session
 
 router = Router()
 
 
-def _format_recent_entries(entries: list[Entry]) -> str:
+def _format_recent_entries(entries: list[Entry], user: User) -> str:
     lines = [RECENT_ENTRIES_HEADER]
     for index, entry in enumerate(entries, start=1):
+        attachment_line = ""
+        if entry.attachments:
+            attachment_names = ", ".join(
+                attachment.file_name for attachment in entry.attachments
+            )
+            attachment_line = f"\nВложения: {attachment_names}"
         lines.append(
             (
-                f"{index}. {entry.created_at:%Y-%m-%d %H:%M:%S} "
+                f"{index}. {format_user_datetime(user, entry.created_at)} "
                 f"({entry.entry_type.value}) [{entry.entry_index}]\n"
-                f"{entry.text}"
+                f"{entry.text}{attachment_line}"
             )
         )
     return "\n\n".join(lines)
@@ -172,7 +180,7 @@ async def daily_prompt(message: Message, state: FSMContext) -> None:
     await state.set_state(EntryState.waiting_text)
     await state.update_data(
         entry_type=EntryType.daily.value,
-        entry_date=date.today().isoformat(),
+        entry_date=local_date_for_user(user).isoformat(),
         question=question,
         mood=None,
         question_queue=[],
@@ -184,10 +192,20 @@ async def daily_prompt(message: Message, state: FSMContext) -> None:
 
 @router.message(F.text == MENU_CREATE_ENTRY)
 async def create_entry_from_menu(message: Message, state: FSMContext) -> None:
+    with get_session(message.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
+    if not user:
+        await message.answer(NEED_START_MESSAGE)
+        return
+
     await state.set_state(EntryState.waiting_text)
     await state.update_data(
         entry_type=EntryType.user.value,
-        entry_date=date.today().isoformat(),
+        entry_date=local_date_for_user(user).isoformat(),
         question=None,
         mood=None,
         question_queue=[],
@@ -228,7 +246,7 @@ async def view_entries(message: Message) -> None:
         return
 
     await message.answer(
-        _format_recent_entries(recent_entries),
+        _format_recent_entries(recent_entries, user),
         reply_markup=MAIN_MENU_KEYBOARD,
     )
     await message.answer(
@@ -284,7 +302,13 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
                 await callback.message.answer(NEED_START_MESSAGE)
             await callback.answer()
             return
-        created_from = resolve_export_start_date(period, date.today())
+        local_today = local_date_for_user(user)
+        created_from_date = resolve_export_start_date(period, local_today)
+        created_from = None
+        if created_from_date is not None:
+            created_from = local_day_start_to_utc_naive(
+                user, created_from_date
+            )
         entries = list_entries(
             session, user, limit=None, created_from=created_from
         )
@@ -333,7 +357,7 @@ async def show_entry_by_index(message: Message, state: FSMContext) -> None:
 
     header = ENTRY_DETAILS_HEADER_TEMPLATE.format(
         entry_index=entry.entry_index,
-        created_at=entry.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        created_at=format_user_datetime(user, entry.created_at),
         entry_type=entry.entry_type.value,
         entry_date=entry.entry_date.strftime("%Y-%m-%d"),
     )

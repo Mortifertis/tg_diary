@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
@@ -24,6 +24,7 @@ def create_entry(
     mood: str | None,
     question: str | None,
     attachments: list[dict[str, str]] | None = None,
+    created_at: datetime | None = None,
 ) -> Entry:
     entry = Entry(
         user_id=user.id,
@@ -33,6 +34,7 @@ def create_entry(
         text=text,
         mood=mood,
         question=question,
+        created_at=created_at,
     )
     for attachment in attachments or []:
         entry.attachments.append(
@@ -110,7 +112,7 @@ def list_entries(
     session: Session,
     user: User,
     limit: int | None,
-    created_from: date | None = None,
+    created_from: datetime | None = None,
 ) -> list[Entry]:
     query = (
         session.query(Entry)
