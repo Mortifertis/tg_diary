@@ -81,7 +81,11 @@ MANAGE_ENTRIES_MORE = "Показать ещё"
 MANAGE_ENTRIES_ACTIONS_PROMPT = "Выберите действие с записью:"
 MANAGE_ENTRIES_EDIT = "Редактировать"
 MANAGE_ENTRIES_DELETE = "Удалить"
-MANAGE_ENTRIES_TEXT_EDIT_PROMPT = "Отправьте новый текст записи."
+MANAGE_ENTRIES_TEXT_EDIT_PROMPT = (
+    "Отправьте новый текст записи. Текущий текст уже подставлен в поле "
+    "ввода — его можно сразу отредактировать и отправить."
+)
+MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX = 64
 MANAGE_ENTRIES_TEXT_EMPTY = "Текст записи не должен быть пустым."
 MANAGE_ENTRIES_UPDATED = "Запись обновлена."
 MANAGE_ENTRIES_DELETED = "Запись удалена."

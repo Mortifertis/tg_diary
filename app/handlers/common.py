@@ -5,7 +5,7 @@ from datetime import date
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import BufferedInputFile, CallbackQuery, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, ForceReply, Message
 
 from app.constants import (DAILY_PROMPT_SUFFIX,
                            ENTRY_DETAILS_ATTACHMENTS_HEADER,
@@ -23,6 +23,7 @@ from app.constants import (DAILY_PROMPT_SUFFIX,
                            MANAGE_ENTRIES_PREVIEW_LIMIT,
                            MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT,
                            MANAGE_ENTRIES_PROMPT,
+                           MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX,
                            MANAGE_ENTRIES_TEXT_EDIT_PROMPT,
                            MANAGE_ENTRIES_TEXT_EMPTY, MANAGE_ENTRIES_UPDATED,
                            MANAGE_SHOW_MORE_PREFIX, MANUAL_ENTRY_PROMPT,
@@ -81,6 +82,14 @@ def _shorten_entry_text(text: str) -> str:
         return text
     limit = MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT
     return f"{text[:limit]}..."
+
+
+def _build_edit_input_placeholder(text: str) -> str:
+    cleaned_text = text.replace("\n", " ").strip()
+    max_len = MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX
+    if len(cleaned_text) <= max_len:
+        return cleaned_text
+    return f"{cleaned_text[:max_len - 3]}..."
 
 
 def _format_manage_entries_preview(entries: list[Entry]) -> str:
@@ -536,10 +545,40 @@ async def start_edit_entry(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer()
         return
     entry_index = callback.data.replace(MANAGE_EDIT_PREFIX, "", 1)
+
+    with get_session(callback.bot) as session:
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=callback.from_user.id)
+            .first()
+        )
+        if not user:
+            if callback.message:
+                await callback.message.answer(NEED_START_MESSAGE)
+            await callback.answer()
+            return
+        entry = get_entry_by_index(session, user, entry_index)
+
+    if not entry:
+        if callback.message:
+            await callback.message.answer(
+                ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+            )
+        await callback.answer()
+        return
+
     await state.set_state(EntryState.waiting_manage_entry_edit_text)
     await state.update_data(manage_entry_index=entry_index)
     if callback.message:
-        await callback.message.answer(MANAGE_ENTRIES_TEXT_EDIT_PROMPT)
+        await _send_entry_details(callback.message, user, entry)
+        await callback.message.answer(
+            MANAGE_ENTRIES_TEXT_EDIT_PROMPT,
+            reply_markup=ForceReply(
+                input_field_placeholder=_build_edit_input_placeholder(
+                    entry.text
+                )
+            ),
+        )
     await callback.answer()
 
 

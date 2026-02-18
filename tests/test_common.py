@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from app.handlers.common import (_format_manage_entries_preview,
+from app.handlers.common import (_build_edit_input_placeholder,
+                                 _format_manage_entries_preview,
                                  _format_recent_entries)
 from app.models import AttachmentType, Entry, EntryAttachment, EntryType, User
 
@@ -52,3 +53,17 @@ def test_format_manage_entries_preview_truncates_text() -> None:
 
     assert "[u11]" in formatted
     assert "..." in formatted
+
+
+def test_build_edit_input_placeholder_keeps_short_text() -> None:
+    placeholder = _build_edit_input_placeholder("Короткий текст")
+
+    assert placeholder == "Короткий текст"
+
+
+def test_build_edit_input_placeholder_truncates_and_flattens_lines() -> None:
+    placeholder = _build_edit_input_placeholder("Строка 1\n" + "x" * 80)
+
+    assert "\n" not in placeholder
+    assert len(placeholder) == 64
+    assert placeholder.endswith("...")
