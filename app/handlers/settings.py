@@ -30,9 +30,13 @@ from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
                            SETTINGS_WEEKLY_PROMPT, TIME_USAGE_MESSAGE,
                            WEEKLY_TIME_UPDATED_TEMPLATE, WEEKLY_USAGE_MESSAGE)
 from app.i18n import LANGUAGE_FLAGS, menu_variants, tr
-from app.keyboards import language_keyboard, questions_settings_keyboard
+from app.keyboards import (appearance_settings_keyboard,
+                           daily_questions_settings_keyboard,
+                           language_keyboard, questions_settings_keyboard,
+                           reminder_time_settings_keyboard)
 from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
+                                    reset_daily_questions_to_default,
                                     set_daily_question_active)
 from app.services.users import get_user_by_telegram_id
 from app.states import SettingsState
@@ -173,10 +177,11 @@ async def _show_daily_questions_menu(message: Message) -> None:
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
 
     await message.answer(
         _build_daily_questions_list(message),
-        reply_markup=questions_settings_keyboard(language),
+        reply_markup=questions_settings_keyboard(language, use_icons),
     )
     await message.answer(SETTINGS_QUESTIONS_MENU_MESSAGE)
 
@@ -242,8 +247,62 @@ async def menu_set_monthly_time(message: Message, state: FSMContext) -> None:
 
 @router.message(lambda message: _menu_text(message, "menu_questions"))
 async def daily_questions_menu(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.in_daily_questions_settings)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
+    await message.answer(
+        tr(language, "settings_questions_menu"),
+        reply_markup=daily_questions_settings_keyboard(language, use_icons),
+    )
+
+
+@router.message(lambda message: _menu_text(message, "menu_questions_change"))
+async def change_daily_questions_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
     await state.set_state(SettingsState.in_questions_menu)
     await _show_daily_questions_menu(message)
+
+
+@router.message(lambda message: _menu_text(message, "menu_questions_count"))
+async def set_daily_questions_count_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    await state.set_state(SettingsState.waiting_daily_questions_count)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    await message.answer(tr(language, "settings_questions_count_prompt"))
+
+
+@router.message(lambda message: _menu_text(message, "settings_reminder_times"))
+async def reminder_times_menu(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.in_reminder_times_settings)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
+    await message.answer(
+        tr(language, "settings_reminder_times_menu"),
+        reply_markup=reminder_time_settings_keyboard(language, use_icons),
+    )
+
+
+@router.message(lambda message: _menu_text(message, "settings_appearance"))
+async def appearance_menu(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.in_appearance_settings)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
+    await message.answer(
+        tr(language, "settings_appearance"),
+        reply_markup=appearance_settings_keyboard(language, use_icons),
+    )
 
 
 @router.message(lambda message: _menu_text(message, "settings_language"))
@@ -287,6 +346,24 @@ async def save_language(message: Message, state: FSMContext) -> None:
     )
 
 
+@router.message(lambda message: _menu_text(message, "settings_toggle_icons"))
+async def toggle_icons(message: Message) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(tr("ru", "need_start"))
+            return
+        user.enable_menu_icons = not bool(user.enable_menu_icons)
+        language = user.language
+        use_icons = bool(user.enable_menu_icons)
+
+    key = "settings_icons_enabled" if use_icons else "settings_icons_disabled"
+    await message.answer(
+        tr(language, key),
+        reply_markup=appearance_settings_keyboard(language, use_icons),
+    )
+
+
 @router.message(lambda message: _menu_text(message, "menu_questions_add"))
 async def prompt_add_daily_question(
     message: Message,
@@ -321,6 +398,55 @@ async def prompt_resume_daily_question(
 ) -> None:
     await state.set_state(SettingsState.waiting_resume_daily_question_id)
     await message.answer(QUESTIONS_RESUME_PROMPT)
+
+
+@router.message(lambda message: _menu_text(message, "menu_questions_reset"))
+async def reset_daily_questions(message: Message, state: FSMContext) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        reset_daily_questions_to_default(session, user)
+
+    await message.answer(QUESTIONS_RESET_DEFAULTS_MESSAGE)
+    await state.set_state(SettingsState.in_questions_menu)
+    await _show_daily_questions_menu(message)
+
+
+@router.message(SettingsState.waiting_daily_questions_count)
+async def save_daily_questions_count(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    value = (message.text or "").strip()
+    if not value.isdigit():
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        await message.answer(tr(language, "settings_questions_count_invalid"))
+        return
+
+    count = int(value)
+    if count < 1 or count > 10:
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        await message.answer(tr(language, "settings_questions_count_invalid"))
+        return
+
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        user.daily_questions_count = count
+        language = user.language
+
+    await state.clear()
+    await message.answer(
+        tr(language, "settings_questions_count_updated", count=count)
+    )
 
 
 @router.message(SettingsState.waiting_new_daily_question)

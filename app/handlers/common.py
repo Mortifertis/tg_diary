@@ -63,6 +63,105 @@ def _menu_text(message: Message, key: str) -> bool:
     return False
 
 
+async def _handle_menu_interrupt(message: Message, state: FSMContext) -> bool:
+    from app.handlers import settings as settings_handlers
+
+    handlers = (
+        ("menu_create", lambda: create_entry_from_menu(message, state)),
+        ("menu_settings", lambda: reminder_settings_menu(message)),
+        ("menu_view", lambda: view_entries(message)),
+        ("menu_manage", lambda: manage_entries(message, state)),
+        ("menu_back", lambda: back_to_main_menu(message, state)),
+        (
+            "settings_reminder_times",
+            lambda: settings_handlers.reminder_times_menu(message, state),
+        ),
+        (
+            "menu_daily",
+            lambda: settings_handlers.menu_set_daily_time(
+                message,
+                state,
+            ),
+        ),
+        (
+            "menu_weekly",
+            lambda: settings_handlers.menu_set_weekly_time(message, state),
+        ),
+        (
+            "menu_monthly",
+            lambda: settings_handlers.menu_set_monthly_time(message, state),
+        ),
+        (
+            "settings_language",
+            lambda: settings_handlers.settings_language_menu(message, state),
+        ),
+        (
+            "settings_appearance",
+            lambda: settings_handlers.appearance_menu(message, state),
+        ),
+        (
+            "settings_toggle_icons",
+            lambda: settings_handlers.toggle_icons(message),
+        ),
+        (
+            "menu_questions",
+            lambda: settings_handlers.daily_questions_menu(message, state),
+        ),
+        (
+            "menu_questions_change",
+            lambda: settings_handlers.change_daily_questions_menu(
+                message,
+                state,
+            ),
+        ),
+        (
+            "menu_questions_count",
+            lambda: settings_handlers.set_daily_questions_count_menu(
+                message,
+                state,
+            ),
+        ),
+        (
+            "menu_questions_add",
+            lambda: settings_handlers.prompt_add_daily_question(
+                message,
+                state,
+            ),
+        ),
+        (
+            "menu_questions_delete",
+            lambda: settings_handlers.prompt_delete_daily_question(
+                message,
+                state,
+            ),
+        ),
+        (
+            "menu_questions_pause",
+            lambda: settings_handlers.prompt_pause_daily_question(
+                message,
+                state,
+            ),
+        ),
+        (
+            "menu_questions_resume",
+            lambda: settings_handlers.prompt_resume_daily_question(
+                message,
+                state,
+            ),
+        ),
+        (
+            "menu_questions_reset",
+            lambda: settings_handlers.reset_daily_questions(message, state),
+        ),
+    )
+    for key, handler in handlers:
+        if _menu_text(message, key):
+            await state.clear()
+            await handler()
+            return True
+    return False
+
+
 def _format_recent_entries(entries: list[Entry], user: User) -> str:
     lines = [tr(user.language, "recent_entries_header")]
     for index, entry in enumerate(entries, start=1):
@@ -512,6 +611,9 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(EntryState.waiting_entry_index)
 async def show_entry_by_index(message: Message, state: FSMContext) -> None:
+    if await _handle_menu_interrupt(message, state):
+        return
+
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
@@ -542,6 +644,9 @@ async def show_entry_by_index(message: Message, state: FSMContext) -> None:
 
 @router.message(EntryState.waiting_manage_entry_index)
 async def manage_entry_by_index(message: Message, state: FSMContext) -> None:
+    if await _handle_menu_interrupt(message, state):
+        return
+
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
