@@ -23,6 +23,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     telegram_id = Column(Integer, unique=True, nullable=False)
     timezone = Column(String(64), nullable=False)
+    language = Column(String(8), nullable=False, default="ru")
     daily_time = Column(String(5), nullable=False)
     weekly_day = Column(Integer, nullable=False)
     weekly_time = Column(String(5), nullable=False)

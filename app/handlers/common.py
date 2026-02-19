@@ -40,10 +40,12 @@ from app.constants import (DAILY_PROMPT_SUFFIX,
                            STATUS_MONTHLY_TEMPLATE,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE)
+from app.i18n import menu_variants, tr
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
                            MOOD_KEYBOARD, REMINDER_SETTINGS_KEYBOARD,
-                           manage_entries_actions_keyboard,
-                           manage_entries_page_keyboard)
+                           main_menu_keyboard, manage_entries_actions_keyboard,
+                           manage_entries_page_keyboard,
+                           reminder_settings_keyboard)
 from app.models import Entry, EntryType, User
 from app.questions import DAILY_QUESTIONS, pick_question
 from app.services.entries import (count_entries, delete_entry_by_index,
@@ -59,6 +61,10 @@ from app.states import EntryState
 from app.storage import get_session
 
 router = Router()
+
+
+def _menu_text(message: Message, key: str) -> bool:
+    return (message.text or "") in menu_variants(key)
 
 
 def _format_recent_entries(entries: list[Entry], user: User) -> str:
@@ -148,6 +154,7 @@ async def start(message: Message) -> None:
             user = User(
                 telegram_id=message.from_user.id,
                 timezone=config.timezone,
+                language="ru",
                 daily_time=config.daily_time_default,
                 weekly_day=config.weekly_day_default,
                 weekly_time=config.weekly_time_default,
@@ -157,7 +164,10 @@ async def start(message: Message) -> None:
             session.add(user)
             session.commit()
         ensure_default_daily_questions(session, user)
-    await message.answer(START_MESSAGE, reply_markup=MAIN_MENU_KEYBOARD)
+    await message.answer(
+        tr(user.language, "start"),
+        reply_markup=main_menu_keyboard(user.language),
+    )
 
 
 @router.message(Command("stats"))
@@ -166,7 +176,7 @@ async def stats(message: Message) -> None:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(
-                START_MESSAGE, reply_markup=MAIN_MENU_KEYBOARD
+                tr("ru", "start"), reply_markup=main_menu_keyboard("ru")
             )
             return
         total = count_entries(session, user)
@@ -247,12 +257,12 @@ async def daily_prompt(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.message(F.text == MENU_CREATE_ENTRY)
+@router.message(lambda message: _menu_text(message, "menu_create"))
 async def create_entry_from_menu(message: Message, state: FSMContext) -> None:
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     if not user:
-        await message.answer(NEED_START_MESSAGE)
+        await message.answer(tr("ru", "need_start"))
         return
 
     await state.set_state(EntryState.waiting_text)
@@ -266,20 +276,29 @@ async def create_entry_from_menu(message: Message, state: FSMContext) -> None:
     await message.answer(MANUAL_ENTRY_PROMPT)
 
 
-@router.message(F.text == MENU_SETTINGS)
+@router.message(lambda message: _menu_text(message, "menu_settings"))
 async def reminder_settings_menu(message: Message) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
     await message.answer(
-        SETTINGS_MENU_MESSAGE,
-        reply_markup=REMINDER_SETTINGS_KEYBOARD,
+        tr(language, "settings_menu"),
+        reply_markup=reminder_settings_keyboard(language),
     )
 
 
-@router.message(F.text == MENU_BACK)
+@router.message(lambda message: _menu_text(message, "menu_back"))
 async def back_to_main_menu(message: Message) -> None:
-    await message.answer(START_MESSAGE, reply_markup=MAIN_MENU_KEYBOARD)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    await message.answer(
+        tr(language, "start"),
+        reply_markup=main_menu_keyboard(language),
+    )
 
 
-@router.message(F.text == MENU_VIEW_ENTRIES)
+@router.message(lambda message: _menu_text(message, "menu_view"))
 async def view_entries(message: Message) -> None:
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
@@ -303,7 +322,7 @@ async def view_entries(message: Message) -> None:
     )
 
 
-@router.message(F.text == MENU_MANAGE_ENTRIES)
+@router.message(lambda message: _menu_text(message, "menu_manage"))
 async def manage_entries(message: Message, state: FSMContext) -> None:
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)

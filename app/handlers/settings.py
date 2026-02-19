@@ -31,7 +31,8 @@ from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
                            SETTINGS_QUESTIONS_MENU_MESSAGE,
                            SETTINGS_WEEKLY_PROMPT, TIME_USAGE_MESSAGE,
                            WEEKLY_TIME_UPDATED_TEMPLATE, WEEKLY_USAGE_MESSAGE)
-from app.keyboards import QUESTIONS_SETTINGS_KEYBOARD
+from app.i18n import LANGUAGE_FLAGS, menu_variants, tr
+from app.keyboards import QUESTIONS_SETTINGS_KEYBOARD, language_keyboard
 from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
                                     set_daily_question_active)
@@ -40,6 +41,19 @@ from app.states import SettingsState
 from app.storage import get_session
 
 router = Router()
+
+
+def _menu_text(message: Message, key: str) -> bool:
+    return (message.text or "") in menu_variants(key)
+
+
+def _flag_to_language(flag: str | None) -> str | None:
+    if not flag:
+        return None
+    for language, value in LANGUAGE_FLAGS.items():
+        if value == flag:
+            return language
+    return None
 
 
 def _is_valid_time(value: str) -> bool:
@@ -199,28 +213,69 @@ async def set_monthly_time(message: Message) -> None:
     await message.answer(_update_monthly_time(message, day, time_value))
 
 
-@router.message(F.text == MENU_DAILY)
+@router.message(lambda message: _menu_text(message, "menu_daily"))
 async def menu_set_daily_time(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.waiting_daily_time)
     await message.answer(SETTINGS_DAILY_PROMPT)
 
 
-@router.message(F.text == MENU_WEEKLY)
+@router.message(lambda message: _menu_text(message, "menu_weekly"))
 async def menu_set_weekly_time(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.waiting_weekly_time)
     await message.answer(SETTINGS_WEEKLY_PROMPT)
 
 
-@router.message(F.text == MENU_MONTHLY)
+@router.message(lambda message: _menu_text(message, "menu_monthly"))
 async def menu_set_monthly_time(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.waiting_monthly_time)
     await message.answer(SETTINGS_MONTHLY_PROMPT)
 
 
-@router.message(F.text == MENU_DAILY_QUESTIONS)
+@router.message(lambda message: _menu_text(message, "menu_questions"))
 async def daily_questions_menu(message: Message, state: FSMContext) -> None:
     await state.clear()
     await _show_daily_questions_menu(message)
+
+
+@router.message(lambda message: _menu_text(message, "settings_language"))
+async def settings_language_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    await state.set_state(SettingsState.waiting_language)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    await message.answer(
+        tr(language, "settings_language_prompt"),
+        reply_markup=language_keyboard(),
+    )
+
+
+@router.message(SettingsState.waiting_language)
+async def save_language(message: Message, state: FSMContext) -> None:
+    selected = _flag_to_language(message.text)
+    if not selected:
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        await message.answer(
+            tr(language, "settings_language_prompt"),
+            reply_markup=language_keyboard(),
+        )
+        return
+
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(tr("ru", "need_start"))
+            return
+        user.language = selected
+
+    await state.clear()
+    await message.answer(
+        tr(selected, "language_updated"),
+    )
 
 
 @router.message(F.text == MENU_QUESTIONS_ADD)
@@ -398,7 +453,7 @@ async def save_monthly_time_from_menu(
 
 
 @router.message(Command("pause"))
-@router.message(F.text == MENU_PAUSE)
+@router.message(lambda message: (message.text or "") == MENU_PAUSE)
 async def pause(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     days = int(args[1]) if len(args) > 1 and args[1].isdigit() else 36500
@@ -415,7 +470,7 @@ async def pause(message: Message) -> None:
 
 
 @router.message(Command("resume"))
-@router.message(F.text == MENU_RESUME)
+@router.message(lambda message: (message.text or "") == MENU_RESUME)
 async def resume(message: Message) -> None:
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)

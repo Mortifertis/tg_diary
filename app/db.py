@@ -34,25 +34,37 @@ def _ensure_sqlite_schema_compatibility(engine) -> None:
     existing_columns = {
         column["name"] for column in inspector.get_columns("entries")
     }
-    if "entry_index" in existing_columns:
+    if "entry_index" not in existing_columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE entries ADD COLUMN entry_index VARCHAR(16)")
+            )
+            connection.execute(
+                text(
+                    """
+                    UPDATE entries
+                    SET entry_index = CASE entry_type
+                        WHEN 'daily' THEN 'd' || id
+                        WHEN 'weekly' THEN 'w' || id
+                        WHEN 'monthly' THEN 'm' || id
+                        WHEN 'user' THEN 'u' || id
+                        ELSE 'e' || id
+                    END
+                    WHERE entry_index IS NULL
+                    """
+                )
+            )
+
+    user_columns = {
+        column["name"] for column in inspector.get_columns("users")
+    }
+    if "language" in user_columns:
         return
 
     with engine.begin() as connection:
         connection.execute(
-            text("ALTER TABLE entries ADD COLUMN entry_index VARCHAR(16)")
-        )
-        connection.execute(
             text(
-                """
-                UPDATE entries
-                SET entry_index = CASE entry_type
-                    WHEN 'daily' THEN 'd' || id
-                    WHEN 'weekly' THEN 'w' || id
-                    WHEN 'monthly' THEN 'm' || id
-                    WHEN 'user' THEN 'u' || id
-                    ELSE 'e' || id
-                END
-                WHERE entry_index IS NULL
-                """
+                "ALTER TABLE users ADD COLUMN language "
+                "VARCHAR(8) NOT NULL DEFAULT 'ru'"
             )
         )

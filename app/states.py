@@ -16,3 +16,4 @@ class SettingsState(StatesGroup):
     waiting_delete_daily_question_id = State()
     waiting_pause_daily_question_id = State()
     waiting_resume_daily_question_id = State()
+    waiting_language = State()
