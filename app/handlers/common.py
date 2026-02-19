@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import cast
 
 from aiogram import F, Router
@@ -30,13 +30,14 @@ from app.constants import (DAILY_PROMPT_SUFFIX,
                            MANAGE_SHOW_MORE_PREFIX, MANUAL_ENTRY_PROMPT,
                            MENU_BACK, MENU_CREATE_ENTRY, MENU_MANAGE_ENTRIES,
                            MENU_SETTINGS, MENU_VIEW_ENTRIES, MOOD_BAD_ICON,
-                           MOOD_GOOD_ICON, MOOD_NEUTRAL_ICON,
-                           MOOD_SAVED_MESSAGE, NEED_START_MESSAGE,
-                           RECENT_ENTRIES_EMPTY, RECENT_ENTRIES_HEADER,
-                           SETTINGS_MENU_MESSAGE, START_MESSAGE,
-                           STATS_MOOD_TEMPLATE, STATS_STREAK_TEMPLATE,
-                           STATS_TOTAL_TEMPLATE, STATUS_DAILY_TEMPLATE,
-                           STATUS_HEADER, STATUS_MONTHLY_TEMPLATE,
+                           MOOD_CALLBACK_PREFIX, MOOD_GOOD_ICON,
+                           MOOD_NEUTRAL_ICON, MOOD_SAVED_MESSAGE,
+                           NEED_START_MESSAGE, RECENT_ENTRIES_EMPTY,
+                           RECENT_ENTRIES_HEADER, SETTINGS_MENU_MESSAGE,
+                           START_MESSAGE, STATS_MOOD_TEMPLATE,
+                           STATS_STREAK_TEMPLATE, STATS_TOTAL_TEMPLATE,
+                           STATUS_DAILY_TEMPLATE, STATUS_HEADER,
+                           STATUS_MONTHLY_TEMPLATE,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE)
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
@@ -53,6 +54,7 @@ from app.services.questions import (ensure_default_daily_questions,
                                     list_active_daily_questions)
 from app.services.timezones import (format_user_datetime, local_date_for_user,
                                     local_day_start_to_utc_naive)
+from app.services.users import get_user_by_telegram_id
 from app.states import EntryState
 from app.storage import get_session
 
@@ -138,11 +140,7 @@ async def _send_entry_details(
 @router.message(CommandStart())
 async def start(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             from app.config import load_config
 
@@ -165,11 +163,7 @@ async def start(message: Message) -> None:
 @router.message(Command("stats"))
 async def stats(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(
                 START_MESSAGE, reply_markup=MAIN_MENU_KEYBOARD
@@ -197,11 +191,7 @@ async def stats(message: Message) -> None:
 @router.message(Command("status"))
 async def status(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -237,11 +227,7 @@ async def status(message: Message) -> None:
 @router.message(Command("daily"))
 async def daily_prompt(message: Message, state: FSMContext) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -264,11 +250,7 @@ async def daily_prompt(message: Message, state: FSMContext) -> None:
 @router.message(F.text == MENU_CREATE_ENTRY)
 async def create_entry_from_menu(message: Message, state: FSMContext) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
     if not user:
         await message.answer(NEED_START_MESSAGE)
         return
@@ -300,11 +282,7 @@ async def back_to_main_menu(message: Message) -> None:
 @router.message(F.text == MENU_VIEW_ENTRIES)
 async def view_entries(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -328,11 +306,7 @@ async def view_entries(message: Message) -> None:
 @router.message(F.text == MENU_MANAGE_ENTRIES)
 async def manage_entries(message: Message, state: FSMContext) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -375,11 +349,7 @@ async def show_more_manage_entries(callback: CallbackQuery) -> None:
     offset = int(offset_text)
 
     with get_session(callback.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=callback.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, callback.from_user.id)
         if not user:
             if callback.message:
                 await callback.message.answer(NEED_START_MESSAGE)
@@ -445,11 +415,7 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
         return
 
     with get_session(callback.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=callback.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, callback.from_user.id)
         if not user:
             if callback.message:
                 await callback.message.answer(NEED_START_MESSAGE)
@@ -492,11 +458,7 @@ async def show_entry_by_index(message: Message, state: FSMContext) -> None:
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -521,11 +483,7 @@ async def manage_entry_by_index(message: Message, state: FSMContext) -> None:
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -552,11 +510,7 @@ async def start_edit_entry(callback: CallbackQuery, state: FSMContext) -> None:
     entry_index = callback.data.replace(MANAGE_EDIT_PREFIX, "", 1)
 
     with get_session(callback.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=callback.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, callback.from_user.id)
         if not user:
             if callback.message:
                 await callback.message.answer(NEED_START_MESSAGE)
@@ -595,11 +549,7 @@ async def delete_entry(callback: CallbackQuery, state: FSMContext) -> None:
     entry_index = callback.data.replace(MANAGE_DELETE_PREFIX, "", 1)
 
     with get_session(callback.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=callback.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, callback.from_user.id)
         if not user:
             if callback.message:
                 await callback.message.answer(NEED_START_MESSAGE)
@@ -633,11 +583,7 @@ async def update_entry(message: Message, state: FSMContext) -> None:
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -659,7 +605,7 @@ async def update_entry(message: Message, state: FSMContext) -> None:
     await state.set_state(EntryState.waiting_manage_entry_index)
 
 
-@router.callback_query(F.data.startswith("mood:"))
+@router.callback_query(F.data.startswith(MOOD_CALLBACK_PREFIX))
 async def set_mood(callback: CallbackQuery, state: FSMContext) -> None:
     mood = callback.data.split(":", maxsplit=1)[1]
     await state.update_data(mood=mood)

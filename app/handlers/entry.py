@@ -10,12 +10,13 @@ from app.constants import (ENTRY_EMPTY_CONTENT_MESSAGE, ENTRY_MEDIA_MAX_IMAGES,
                            ENTRY_SAVED_MESSAGE, ENTRY_TOO_MANY_IMAGES_TEMPLATE,
                            ENTRY_UNSUPPORTED_EXTENSION_TEMPLATE,
                            NEED_START_MESSAGE)
-from app.models import EntryType, User
+from app.models import EntryType
 from app.prompts import build_prompt
 from app.services.attachments import (AttachmentValidationError,
                                       has_entry_content, parse_attachments)
 from app.services.entries import create_entry
 from app.services.timezones import message_datetime_to_utc_naive
+from app.services.users import get_user_by_telegram_id
 from app.states import EntryState
 from app.storage import get_session
 
@@ -52,11 +53,7 @@ async def save_entry(message: Message, state: FSMContext) -> None:
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return

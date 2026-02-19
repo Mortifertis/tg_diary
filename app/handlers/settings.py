@@ -25,16 +25,17 @@ from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
                            QUESTIONS_INVALID_ID_MESSAGE, QUESTIONS_LIST_HEADER,
                            QUESTIONS_NOT_FOUND_MESSAGE, QUESTIONS_PAUSE_PROMPT,
                            QUESTIONS_PAUSED_MESSAGE, QUESTIONS_RESUME_PROMPT,
-                           QUESTIONS_RESUMED_MESSAGE, SETTINGS_DAILY_PROMPT,
+                           QUESTIONS_RESUMED_MESSAGE, QUESTIONS_STATUS_ACTIVE,
+                           QUESTIONS_STATUS_PAUSED, SETTINGS_DAILY_PROMPT,
                            SETTINGS_MONTHLY_PROMPT,
                            SETTINGS_QUESTIONS_MENU_MESSAGE,
                            SETTINGS_WEEKLY_PROMPT, TIME_USAGE_MESSAGE,
                            WEEKLY_TIME_UPDATED_TEMPLATE, WEEKLY_USAGE_MESSAGE)
 from app.keyboards import QUESTIONS_SETTINGS_KEYBOARD
-from app.models import User
 from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
                                     set_daily_question_active)
+from app.services.users import get_user_by_telegram_id
 from app.states import SettingsState
 from app.storage import get_session
 
@@ -99,11 +100,7 @@ def _parse_question_id(raw_value: str | None) -> int | None:
 
 def _update_daily_time(message: Message, time_value: str) -> str:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             return NEED_START_MESSAGE
         user.daily_time = time_value
@@ -114,11 +111,7 @@ def _update_daily_time(message: Message, time_value: str) -> str:
 
 def _update_weekly_time(message: Message, day: int, time_value: str) -> str:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             return NEED_START_MESSAGE
         user.weekly_day = day
@@ -128,11 +121,7 @@ def _update_weekly_time(message: Message, day: int, time_value: str) -> str:
 
 def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             return NEED_START_MESSAGE
         user.monthly_day = day
@@ -142,11 +131,7 @@ def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
 
 def _build_daily_questions_list(message: Message) -> str:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             return NEED_START_MESSAGE
         questions = list_daily_questions(session, user)
@@ -156,7 +141,11 @@ def _build_daily_questions_list(message: Message) -> str:
 
     lines = [QUESTIONS_LIST_HEADER]
     for question in questions:
-        status = "активен" if question.is_active else "на паузе"
+        status = (
+            QUESTIONS_STATUS_ACTIVE
+            if question.is_active
+            else QUESTIONS_STATUS_PAUSED
+        )
         lines.append(f"{question.id}. [{status}] {question.text}")
     return "\n".join(lines)
 
@@ -278,11 +267,7 @@ async def save_new_daily_question(message: Message, state: FSMContext) -> None:
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -307,11 +292,7 @@ async def delete_daily_question_from_menu(
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -336,11 +317,7 @@ async def pause_daily_question_from_menu(
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -365,11 +342,7 @@ async def resume_daily_question_from_menu(
         return
 
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -431,11 +404,7 @@ async def pause(message: Message) -> None:
     days = int(args[1]) if len(args) > 1 and args[1].isdigit() else 36500
     pause_until = date.today() + timedelta(days=days)
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -449,11 +418,7 @@ async def pause(message: Message) -> None:
 @router.message(F.text == MENU_RESUME)
 async def resume(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = (
-            session.query(User)
-            .filter_by(telegram_id=message.from_user.id)
-            .first()
-        )
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return

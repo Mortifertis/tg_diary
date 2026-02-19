@@ -66,6 +66,8 @@ QUESTIONS_NOT_FOUND_MESSAGE = "Вопрос не найден."
 QUESTIONS_EMPTY_TEXT_MESSAGE = "Текст вопроса не должен быть пустым."
 QUESTIONS_DUPLICATE_MESSAGE = "Такой вопрос уже есть в списке."
 QUESTIONS_DEFAULT_TAG = "по умолчанию"
+QUESTIONS_STATUS_ACTIVE = "активен"
+QUESTIONS_STATUS_PAUSED = "на паузе"
 QUESTIONS_RESET_DEFAULTS_MESSAGE = (
     "Список вопросов сброшен к значениям по умолчанию."
 )
@@ -95,6 +97,7 @@ MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT = 100
 MANAGE_SHOW_MORE_PREFIX = "manage:page:"
 MANAGE_EDIT_PREFIX = "manage:edit:"
 MANAGE_DELETE_PREFIX = "manage:delete:"
+MOOD_CALLBACK_PREFIX = "mood:"
 
 ENTRY_MEDIA_MAX_IMAGES = 5
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
