@@ -4,15 +4,13 @@ from datetime import date
 from datetime import time as dt_time
 from datetime import timedelta
 
-from aiogram import F, Router
+from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
                            MENU_DAILY_QUESTIONS, MENU_MONTHLY, MENU_PAUSE,
-                           MENU_QUESTIONS_ADD, MENU_QUESTIONS_DELETE,
-                           MENU_QUESTIONS_PAUSE, MENU_QUESTIONS_RESUME,
                            MENU_RESUME, MENU_WEEKLY,
                            MONTHLY_TIME_UPDATED_TEMPLATE,
                            MONTHLY_USAGE_MESSAGE, NEED_START_MESSAGE,
@@ -32,7 +30,7 @@ from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
                            SETTINGS_WEEKLY_PROMPT, TIME_USAGE_MESSAGE,
                            WEEKLY_TIME_UPDATED_TEMPLATE, WEEKLY_USAGE_MESSAGE)
 from app.i18n import LANGUAGE_FLAGS, menu_variants, tr
-from app.keyboards import QUESTIONS_SETTINGS_KEYBOARD, language_keyboard
+from app.keyboards import language_keyboard, questions_settings_keyboard
 from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
                                     set_daily_question_active)
@@ -165,9 +163,13 @@ def _build_daily_questions_list(message: Message) -> str:
 
 
 async def _show_daily_questions_menu(message: Message) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+
     await message.answer(
         _build_daily_questions_list(message),
-        reply_markup=QUESTIONS_SETTINGS_KEYBOARD,
+        reply_markup=questions_settings_keyboard(language),
     )
     await message.answer(SETTINGS_QUESTIONS_MENU_MESSAGE)
 
@@ -248,7 +250,7 @@ async def settings_language_menu(
     language = user.language if user else "ru"
     await message.answer(
         tr(language, "settings_language_prompt"),
-        reply_markup=language_keyboard(),
+        reply_markup=language_keyboard(language),
     )
 
 
@@ -278,7 +280,7 @@ async def save_language(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.message(F.text == MENU_QUESTIONS_ADD)
+@router.message(lambda message: _menu_text(message, "menu_questions_add"))
 async def prompt_add_daily_question(
     message: Message,
     state: FSMContext,
@@ -287,7 +289,7 @@ async def prompt_add_daily_question(
     await message.answer(QUESTIONS_ADD_PROMPT)
 
 
-@router.message(F.text == MENU_QUESTIONS_DELETE)
+@router.message(lambda message: _menu_text(message, "menu_questions_delete"))
 async def prompt_delete_daily_question(
     message: Message,
     state: FSMContext,
@@ -296,7 +298,7 @@ async def prompt_delete_daily_question(
     await message.answer(QUESTIONS_DELETE_PROMPT)
 
 
-@router.message(F.text == MENU_QUESTIONS_PAUSE)
+@router.message(lambda message: _menu_text(message, "menu_questions_pause"))
 async def prompt_pause_daily_question(
     message: Message,
     state: FSMContext,
@@ -305,7 +307,7 @@ async def prompt_pause_daily_question(
     await message.answer(QUESTIONS_PAUSE_PROMPT)
 
 
-@router.message(F.text == MENU_QUESTIONS_RESUME)
+@router.message(lambda message: _menu_text(message, "menu_questions_resume"))
 async def prompt_resume_daily_question(
     message: Message,
     state: FSMContext,

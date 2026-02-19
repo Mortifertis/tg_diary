@@ -3,8 +3,9 @@ from __future__ import annotations
 from app.constants import (EXPORT_VIEW_BY_INDEX, MENU_CREATE_ENTRY,
                            MENU_MANAGE_ENTRIES, MENU_QUESTIONS_RESET,
                            MENU_SETTINGS, MENU_VIEW_ENTRIES)
+from app.i18n import tr
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
-                           QUESTIONS_SETTINGS_KEYBOARD)
+                           QUESTIONS_SETTINGS_KEYBOARD, language_keyboard)
 
 
 def test_main_menu_contains_new_structure() -> None:
@@ -28,6 +29,23 @@ def test_questions_menu_contains_reset_button() -> None:
     ]
 
     assert MENU_QUESTIONS_RESET in texts
+
+
+def test_questions_menu_contains_back_button() -> None:
+    texts = [
+        button.text
+        for row in QUESTIONS_SETTINGS_KEYBOARD.keyboard
+        for button in row
+    ]
+
+    assert tr("ru", "menu_back") in texts
+
+
+def test_language_menu_contains_back_button() -> None:
+    keyboard = language_keyboard("en")
+    texts = [button.text for row in keyboard.keyboard for button in row]
+
+    assert tr("en", "menu_back") in texts
 
 
 def test_export_menu_contains_entry_index_button() -> None:

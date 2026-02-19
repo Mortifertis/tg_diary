@@ -13,12 +13,11 @@ from app.constants import (DAILY_PROMPT_SUFFIX,
                            ENTRY_DETAILS_HEADER_TEMPLATE,
                            ENTRY_DETAILS_TEXT_TEMPLATE,
                            ENTRY_INDEX_INVALID_MESSAGE, ENTRY_INDEX_PROMPT,
-                           ENTRY_NOT_FOUND_TEMPLATE, EXPORT_3_MONTHS,
-                           EXPORT_ALL, EXPORT_CALLBACK_PREFIX,
+                           ENTRY_NOT_FOUND_TEMPLATE, EXPORT_CALLBACK_PREFIX,
                            EXPORT_DONE_TEMPLATE, EXPORT_INDEX_CALLBACK,
-                           EXPORT_MENU_PROMPT, EXPORT_MONTH, EXPORT_NO_ENTRIES,
-                           EXPORT_WEEK, EXPORT_YEAR, MANAGE_DELETE_PREFIX,
-                           MANAGE_EDIT_PREFIX, MANAGE_ENTRIES_ACTIONS_PROMPT,
+                           EXPORT_MENU_PROMPT, EXPORT_NO_ENTRIES,
+                           MANAGE_DELETE_PREFIX, MANAGE_EDIT_PREFIX,
+                           MANAGE_ENTRIES_ACTIONS_PROMPT,
                            MANAGE_ENTRIES_DELETED, MANAGE_ENTRIES_EMPTY,
                            MANAGE_ENTRIES_HEADER, MANAGE_ENTRIES_PAGE_END,
                            MANAGE_ENTRIES_PREVIEW_LIMIT,
@@ -34,15 +33,13 @@ from app.constants import (DAILY_PROMPT_SUFFIX,
                            MOOD_NEUTRAL_ICON, MOOD_SAVED_MESSAGE,
                            NEED_START_MESSAGE, RECENT_ENTRIES_EMPTY,
                            RECENT_ENTRIES_HEADER, SETTINGS_MENU_MESSAGE,
-                           START_MESSAGE, STATS_MOOD_TEMPLATE,
-                           STATS_STREAK_TEMPLATE, STATS_TOTAL_TEMPLATE,
-                           STATUS_DAILY_TEMPLATE, STATUS_HEADER,
-                           STATUS_MONTHLY_TEMPLATE,
+                           STATS_MOOD_TEMPLATE, STATS_STREAK_TEMPLATE,
+                           STATS_TOTAL_TEMPLATE, STATUS_DAILY_TEMPLATE,
+                           STATUS_HEADER, STATUS_MONTHLY_TEMPLATE,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE)
 from app.i18n import menu_variants, tr
-from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
-                           MOOD_KEYBOARD, REMINDER_SETTINGS_KEYBOARD,
+from app.keyboards import (MOOD_KEYBOARD, export_entries_keyboard,
                            main_menu_keyboard, manage_entries_actions_keyboard,
                            manage_entries_page_keyboard,
                            reminder_settings_keyboard)
@@ -194,7 +191,7 @@ async def stats(message: Message) -> None:
         f"{STATS_TOTAL_TEMPLATE.format(total=total)}\n"
         f"{STATS_STREAK_TEMPLATE.format(streak=streak)}\n"
         f"{STATS_MOOD_TEMPLATE.format(mood_line=mood_line)}",
-        reply_markup=MAIN_MENU_KEYBOARD,
+        reply_markup=main_menu_keyboard(user.language),
     )
 
 
@@ -230,7 +227,7 @@ async def status(message: Message) -> None:
         f"{weekly_status}\n"
         f"{monthly_status}\n"
         f"{STATUS_PAUSE_TEMPLATE.format(pause=pause)}",
-        reply_markup=MAIN_MENU_KEYBOARD,
+        reply_markup=main_menu_keyboard(user.language),
     )
 
 
@@ -309,16 +306,16 @@ async def view_entries(message: Message) -> None:
 
     if not recent_entries:
         await message.answer(
-            RECENT_ENTRIES_EMPTY, reply_markup=MAIN_MENU_KEYBOARD
+            RECENT_ENTRIES_EMPTY, reply_markup=main_menu_keyboard(user.language)
         )
         return
 
     await message.answer(
         _format_recent_entries(recent_entries, user),
-        reply_markup=MAIN_MENU_KEYBOARD,
+        reply_markup=main_menu_keyboard(user.language),
     )
     await message.answer(
-        EXPORT_MENU_PROMPT, reply_markup=EXPORT_ENTRIES_KEYBOARD
+        EXPORT_MENU_PROMPT, reply_markup=export_entries_keyboard(user.language)
     )
 
 
@@ -396,13 +393,13 @@ async def show_more_manage_entries(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
-def _resolve_period_label(period: str) -> str | None:
+def _resolve_period_label(period: str, language: str) -> str | None:
     period_labels = {
-        "week": EXPORT_WEEK,
-        "month": EXPORT_MONTH,
-        "3months": EXPORT_3_MONTHS,
-        "year": EXPORT_YEAR,
-        "all": EXPORT_ALL,
+        "week": tr(language, "export_week"),
+        "month": tr(language, "export_month"),
+        "3months": tr(language, "export_3months"),
+        "year": tr(language, "export_year"),
+        "all": tr(language, "export_all"),
     }
     return period_labels.get(period)
 
@@ -414,22 +411,22 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
         return
     period = callback.data.split(":", maxsplit=1)[1]
     if period == "back":
+        language = "ru"
+        with get_session(callback.bot) as session:
+            user = get_user_by_telegram_id(session, callback.from_user.id)
+        if user:
+            language = user.language
         await callback.answer()
         if callback.message:
             await callback.message.answer(
-                START_MESSAGE,
-                reply_markup=MAIN_MENU_KEYBOARD,
+                tr(language, "start"),
+                reply_markup=main_menu_keyboard(language),
             )
         return
     if callback.data == EXPORT_INDEX_CALLBACK:
         await state.set_state(EntryState.waiting_entry_index)
         if callback.message:
             await callback.message.answer(ENTRY_INDEX_PROMPT)
-        await callback.answer()
-        return
-
-    period_label = _resolve_period_label(period)
-    if period_label is None:
         await callback.answer()
         return
 
@@ -450,6 +447,11 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
         entries = list_entries(
             session, user, limit=None, created_from=created_from
         )
+
+    period_label = _resolve_period_label(period, user.language)
+    if period_label is None:
+        await callback.answer()
+        return
 
     await callback.answer()
     if not entries:
