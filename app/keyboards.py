@@ -467,6 +467,7 @@ def export_entries_keyboard(language: str) -> InlineKeyboardMarkup:
 def manage_entries_page_keyboard(
     offset: int,
     language: str,
+    use_icons: bool = True,
 ) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
