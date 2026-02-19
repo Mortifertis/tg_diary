@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+from typing import cast
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
@@ -47,20 +48,27 @@ def create_entry(
         )
     session.add(entry)
     session.flush()
-    entry.entry_index = f"{ENTRY_TYPE_INDEX_PREFIXES[entry_type]}{entry.id}"
+    setattr(
+        entry,
+        "entry_index",
+        f"{ENTRY_TYPE_INDEX_PREFIXES[entry_type]}{cast(int, entry.id)}",
+    )
     update_streak(user, entry_date)
     reset_daily_reminders(user, entry_type, entry_date)
     return entry
 
 
 def update_streak(user: User, entry_date: date) -> None:
-    if user.last_entry_date is None:
-        user.streak = 1
-    elif (entry_date - user.last_entry_date).days == 1:
-        user.streak += 1
-    elif entry_date != user.last_entry_date:
-        user.streak = 1
-    user.last_entry_date = entry_date
+    last_entry_date = cast(date | None, user.last_entry_date)
+    streak = cast(int, user.streak)
+
+    if last_entry_date is None:
+        setattr(user, "streak", 1)
+    elif (entry_date - last_entry_date).days == 1:
+        setattr(user, "streak", streak + 1)
+    elif entry_date != last_entry_date:
+        setattr(user, "streak", 1)
+    setattr(user, "last_entry_date", entry_date)
 
 
 def reset_daily_reminders(
@@ -68,8 +76,8 @@ def reset_daily_reminders(
 ) -> None:
     if entry_type != EntryType.daily:
         return
-    user.daily_reminder_date = entry_date
-    user.daily_reminder_stage = 0
+    setattr(user, "daily_reminder_date", entry_date)
+    setattr(user, "daily_reminder_stage", 0)
 
 
 def count_entries(
@@ -169,7 +177,7 @@ def update_entry_text(
     entry = get_entry_by_index(session, user, entry_index)
     if not entry:
         return None
-    entry.text = text
+    setattr(entry, "text", text)
     session.flush()
     return entry
 

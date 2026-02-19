@@ -52,5 +52,8 @@ def parse_attachments(message: Message) -> list[dict[str, str]]:
     return attachments
 
 
-def has_entry_content(message: Message, attachments: list[dict[str, str]]) -> bool:
+def has_entry_content(
+    message: Message,
+    attachments: list[dict[str, str]],
+) -> bool:
     return bool((message.text or message.caption or "").strip() or attachments)

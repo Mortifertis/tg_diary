@@ -99,7 +99,11 @@ def _parse_question_id(raw_value: str | None) -> int | None:
 
 def _update_daily_time(message: Message, time_value: str) -> str:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             return NEED_START_MESSAGE
         user.daily_time = time_value
@@ -110,7 +114,11 @@ def _update_daily_time(message: Message, time_value: str) -> str:
 
 def _update_weekly_time(message: Message, day: int, time_value: str) -> str:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             return NEED_START_MESSAGE
         user.weekly_day = day
@@ -120,7 +128,11 @@ def _update_weekly_time(message: Message, day: int, time_value: str) -> str:
 
 def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             return NEED_START_MESSAGE
         user.monthly_day = day
@@ -130,7 +142,11 @@ def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
 
 def _build_daily_questions_list(message: Message) -> str:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             return NEED_START_MESSAGE
         questions = list_daily_questions(session, user)
@@ -219,25 +235,37 @@ async def daily_questions_menu(message: Message, state: FSMContext) -> None:
 
 
 @router.message(F.text == MENU_QUESTIONS_ADD)
-async def prompt_add_daily_question(message: Message, state: FSMContext) -> None:
+async def prompt_add_daily_question(
+    message: Message,
+    state: FSMContext,
+) -> None:
     await state.set_state(SettingsState.waiting_new_daily_question)
     await message.answer(QUESTIONS_ADD_PROMPT)
 
 
 @router.message(F.text == MENU_QUESTIONS_DELETE)
-async def prompt_delete_daily_question(message: Message, state: FSMContext) -> None:
+async def prompt_delete_daily_question(
+    message: Message,
+    state: FSMContext,
+) -> None:
     await state.set_state(SettingsState.waiting_delete_daily_question_id)
     await message.answer(QUESTIONS_DELETE_PROMPT)
 
 
 @router.message(F.text == MENU_QUESTIONS_PAUSE)
-async def prompt_pause_daily_question(message: Message, state: FSMContext) -> None:
+async def prompt_pause_daily_question(
+    message: Message,
+    state: FSMContext,
+) -> None:
     await state.set_state(SettingsState.waiting_pause_daily_question_id)
     await message.answer(QUESTIONS_PAUSE_PROMPT)
 
 
 @router.message(F.text == MENU_QUESTIONS_RESUME)
-async def prompt_resume_daily_question(message: Message, state: FSMContext) -> None:
+async def prompt_resume_daily_question(
+    message: Message,
+    state: FSMContext,
+) -> None:
     await state.set_state(SettingsState.waiting_resume_daily_question_id)
     await message.answer(QUESTIONS_RESUME_PROMPT)
 
@@ -250,7 +278,11 @@ async def save_new_daily_question(message: Message, state: FSMContext) -> None:
         return
 
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -265,14 +297,21 @@ async def save_new_daily_question(message: Message, state: FSMContext) -> None:
 
 
 @router.message(SettingsState.waiting_delete_daily_question_id)
-async def delete_daily_question_from_menu(message: Message, state: FSMContext) -> None:
+async def delete_daily_question_from_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
     question_id = _parse_question_id(message.text)
     if question_id is None:
         await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
         return
 
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -287,14 +326,21 @@ async def delete_daily_question_from_menu(message: Message, state: FSMContext) -
 
 
 @router.message(SettingsState.waiting_pause_daily_question_id)
-async def pause_daily_question_from_menu(message: Message, state: FSMContext) -> None:
+async def pause_daily_question_from_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
     question_id = _parse_question_id(message.text)
     if question_id is None:
         await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
         return
 
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -309,14 +355,21 @@ async def pause_daily_question_from_menu(message: Message, state: FSMContext) ->
 
 
 @router.message(SettingsState.waiting_resume_daily_question_id)
-async def resume_daily_question_from_menu(message: Message, state: FSMContext) -> None:
+async def resume_daily_question_from_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
     question_id = _parse_question_id(message.text)
     if question_id is None:
         await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
         return
 
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
@@ -331,7 +384,10 @@ async def resume_daily_question_from_menu(message: Message, state: FSMContext) -
 
 
 @router.message(SettingsState.waiting_daily_time)
-async def save_daily_time_from_menu(message: Message, state: FSMContext) -> None:
+async def save_daily_time_from_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
     time_value = _parse_daily_time(message.text)
     if not time_value:
         await message.answer(TIME_USAGE_MESSAGE)
@@ -341,7 +397,10 @@ async def save_daily_time_from_menu(message: Message, state: FSMContext) -> None
 
 
 @router.message(SettingsState.waiting_weekly_time)
-async def save_weekly_time_from_menu(message: Message, state: FSMContext) -> None:
+async def save_weekly_time_from_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
     parsed = _parse_weekly(message.text)
     if not parsed:
         await message.answer(WEEKLY_USAGE_MESSAGE)
@@ -352,7 +411,10 @@ async def save_weekly_time_from_menu(message: Message, state: FSMContext) -> Non
 
 
 @router.message(SettingsState.waiting_monthly_time)
-async def save_monthly_time_from_menu(message: Message, state: FSMContext) -> None:
+async def save_monthly_time_from_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
     parsed = _parse_monthly(message.text)
     if not parsed:
         await message.answer(MONTHLY_USAGE_MESSAGE)
@@ -369,19 +431,29 @@ async def pause(message: Message) -> None:
     days = int(args[1]) if len(args) > 1 and args[1].isdigit() else 36500
     pause_until = date.today() + timedelta(days=days)
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return
         user.pause_until = pause_until
-    await message.answer(PAUSE_ENABLED_TEMPLATE.format(pause_until=pause_until))
+    await message.answer(
+        PAUSE_ENABLED_TEMPLATE.format(pause_until=pause_until)
+    )
 
 
 @router.message(Command("resume"))
 @router.message(F.text == MENU_RESUME)
 async def resume(message: Message) -> None:
     with get_session(message.bot) as session:
-        user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+        user = (
+            session.query(User)
+            .filter_by(telegram_id=message.from_user.id)
+            .first()
+        )
         if not user:
             await message.answer(NEED_START_MESSAGE)
             return

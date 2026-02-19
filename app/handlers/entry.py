@@ -37,7 +37,9 @@ async def save_entry(message: Message, state: FSMContext) -> None:
         extension = str(error)
         if extension == "too_many_images":
             await message.answer(
-                ENTRY_TOO_MANY_IMAGES_TEMPLATE.format(max_images=ENTRY_MEDIA_MAX_IMAGES)
+                ENTRY_TOO_MANY_IMAGES_TEMPLATE.format(
+                    max_images=ENTRY_MEDIA_MAX_IMAGES,
+                )
             )
             return
         await message.answer(

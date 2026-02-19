@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from typing import cast
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
@@ -67,9 +68,10 @@ def _format_recent_entries(entries: list[Entry], user: User) -> str:
                 attachment.file_name for attachment in entry.attachments
             )
             attachment_line = f"\nВложения: {attachment_names}"
+        created_at = cast(datetime, entry.created_at)
         lines.append(
             (
-                f"{index}. {format_user_datetime(user, entry.created_at)} "
+                f"{index}. {format_user_datetime(user, created_at)} "
                 f"({entry.entry_type.value}) [{entry.entry_index}]\n"
                 f"{entry.text}{attachment_line}"
             )
@@ -95,7 +97,7 @@ def _build_edit_input_placeholder(text: str) -> str:
 def _format_manage_entries_preview(entries: list[Entry]) -> str:
     lines = [MANAGE_ENTRIES_HEADER]
     for entry in entries:
-        preview = _shorten_entry_text(entry.text)
+        preview = _shorten_entry_text(cast(str, entry.text))
         lines.append(f"[{entry.entry_index}] {preview}")
     return "\n\n".join(lines)
 
@@ -107,7 +109,10 @@ async def _send_entry_details(
 ) -> None:
     header = ENTRY_DETAILS_HEADER_TEMPLATE.format(
         entry_index=entry.entry_index,
-        created_at=format_user_datetime(user, entry.created_at),
+        created_at=format_user_datetime(
+            user,
+            cast(datetime, entry.created_at),
+        ),
         entry_type=entry.entry_type.value,
         entry_date=entry.entry_date.strftime("%Y-%m-%d"),
     )
@@ -575,7 +580,7 @@ async def start_edit_entry(callback: CallbackQuery, state: FSMContext) -> None:
             MANAGE_ENTRIES_TEXT_EDIT_PROMPT,
             reply_markup=ForceReply(
                 input_field_placeholder=_build_edit_input_placeholder(
-                    entry.text
+                    cast(str, entry.text)
                 )
             ),
         )
