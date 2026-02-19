@@ -12,3 +12,7 @@ def test_translation_returns_english_text() -> None:
 
 def test_language_flags_contains_supported_languages() -> None:
     assert set(LANGUAGE_FLAGS) == {"ru", "en", "fr", "de"}
+
+
+def test_back_translation_is_not_main_menu() -> None:
+    assert tr("en", "menu_back") == "Back"

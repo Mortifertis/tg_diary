@@ -11,31 +11,23 @@ from aiogram.types import BufferedInputFile, CallbackQuery, ForceReply, Message
 from app.constants import (DAILY_PROMPT_SUFFIX,
                            ENTRY_DETAILS_ATTACHMENTS_HEADER,
                            ENTRY_DETAILS_HEADER_TEMPLATE,
-                           ENTRY_DETAILS_TEXT_TEMPLATE,
-                           ENTRY_INDEX_INVALID_MESSAGE, ENTRY_INDEX_PROMPT,
-                           ENTRY_NOT_FOUND_TEMPLATE, EXPORT_CALLBACK_PREFIX,
+                           ENTRY_DETAILS_TEXT_TEMPLATE, EXPORT_CALLBACK_PREFIX,
                            EXPORT_DONE_TEMPLATE, EXPORT_INDEX_CALLBACK,
                            EXPORT_MENU_PROMPT, EXPORT_NO_ENTRIES,
                            MANAGE_DELETE_PREFIX, MANAGE_EDIT_PREFIX,
-                           MANAGE_ENTRIES_ACTIONS_PROMPT,
-                           MANAGE_ENTRIES_DELETED, MANAGE_ENTRIES_EMPTY,
-                           MANAGE_ENTRIES_HEADER, MANAGE_ENTRIES_PAGE_END,
+                           MANAGE_ENTRIES_DELETED,
                            MANAGE_ENTRIES_PREVIEW_LIMIT,
                            MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT,
-                           MANAGE_ENTRIES_PROMPT,
                            MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX,
                            MANAGE_ENTRIES_TEXT_EDIT_PROMPT,
                            MANAGE_ENTRIES_TEXT_EMPTY, MANAGE_ENTRIES_UPDATED,
                            MANAGE_SHOW_MORE_PREFIX, MANUAL_ENTRY_PROMPT,
-                           MENU_BACK, MENU_CREATE_ENTRY, MENU_MANAGE_ENTRIES,
-                           MENU_SETTINGS, MENU_VIEW_ENTRIES, MOOD_BAD_ICON,
-                           MOOD_CALLBACK_PREFIX, MOOD_GOOD_ICON,
+                           MOOD_BAD_ICON, MOOD_CALLBACK_PREFIX, MOOD_GOOD_ICON,
                            MOOD_NEUTRAL_ICON, MOOD_SAVED_MESSAGE,
-                           NEED_START_MESSAGE, RECENT_ENTRIES_EMPTY,
-                           RECENT_ENTRIES_HEADER, SETTINGS_MENU_MESSAGE,
-                           STATS_MOOD_TEMPLATE, STATS_STREAK_TEMPLATE,
-                           STATS_TOTAL_TEMPLATE, STATUS_DAILY_TEMPLATE,
-                           STATUS_HEADER, STATUS_MONTHLY_TEMPLATE,
+                           NEED_START_MESSAGE, STATS_MOOD_TEMPLATE,
+                           STATS_STREAK_TEMPLATE, STATS_TOTAL_TEMPLATE,
+                           STATUS_DAILY_TEMPLATE, STATUS_HEADER,
+                           STATUS_MONTHLY_TEMPLATE,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE)
 from app.i18n import menu_variants, tr
@@ -54,7 +46,7 @@ from app.services.questions import (ensure_default_daily_questions,
 from app.services.timezones import (format_user_datetime, local_date_for_user,
                                     local_day_start_to_utc_naive)
 from app.services.users import get_user_by_telegram_id
-from app.states import EntryState
+from app.states import EntryState, SettingsState
 from app.storage import get_session
 
 router = Router()
@@ -65,14 +57,16 @@ def _menu_text(message: Message, key: str) -> bool:
 
 
 def _format_recent_entries(entries: list[Entry], user: User) -> str:
-    lines = [RECENT_ENTRIES_HEADER]
+    lines = [tr(user.language, "recent_entries_header")]
     for index, entry in enumerate(entries, start=1):
         attachment_line = ""
         if entry.attachments:
             attachment_names = ", ".join(
                 attachment.file_name for attachment in entry.attachments
             )
-            attachment_line = f"\nВложения: {attachment_names}"
+            attachment_line = (
+                f"\n{tr(user.language, 'attachments')}: {attachment_names}"
+            )
         created_at = cast(datetime, entry.created_at)
         lines.append(
             (
@@ -99,8 +93,8 @@ def _build_edit_input_placeholder(text: str) -> str:
     return f"{cleaned_text[:max_len - 3]}..."
 
 
-def _format_manage_entries_preview(entries: list[Entry]) -> str:
-    lines = [MANAGE_ENTRIES_HEADER]
+def _format_manage_entries_preview(entries: list[Entry], language: str) -> str:
+    lines = [tr(language, "manage_entries_header")]
     for entry in entries:
         preview = _shorten_entry_text(cast(str, entry.text))
         lines.append(f"[{entry.entry_index}] {preview}")
@@ -285,12 +279,34 @@ async def reminder_settings_menu(message: Message) -> None:
 
 
 @router.message(lambda message: _menu_text(message, "menu_back"))
-async def back_to_main_menu(message: Message) -> None:
+async def back_to_main_menu(message: Message, state: FSMContext) -> None:
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
+    current_state = await state.get_state()
+
+    settings_states = {
+        SettingsState.waiting_language.state,
+        SettingsState.waiting_daily_time.state,
+        SettingsState.waiting_weekly_time.state,
+        SettingsState.waiting_monthly_time.state,
+        SettingsState.waiting_new_daily_question.state,
+        SettingsState.waiting_delete_daily_question_id.state,
+        SettingsState.waiting_pause_daily_question_id.state,
+        SettingsState.waiting_resume_daily_question_id.state,
+        SettingsState.in_questions_menu.state,
+    }
+    if current_state in settings_states:
+        await state.clear()
+        await message.answer(
+            tr(language, "settings_menu"),
+            reply_markup=reminder_settings_keyboard(language),
+        )
+        return
+
+    await state.clear()
     await message.answer(
-        tr(language, "start"),
+        tr(language, "main_menu_opened"),
         reply_markup=main_menu_keyboard(language),
     )
 
@@ -306,7 +322,8 @@ async def view_entries(message: Message) -> None:
 
     if not recent_entries:
         await message.answer(
-            RECENT_ENTRIES_EMPTY, reply_markup=main_menu_keyboard(user.language)
+            tr(user.language, "recent_entries_empty"),
+            reply_markup=main_menu_keyboard(user.language),
         )
         return
 
@@ -334,22 +351,25 @@ async def manage_entries(message: Message, state: FSMContext) -> None:
         total_entries = count_entries(session, user)
 
     if not preview_entries:
-        await message.answer(MANAGE_ENTRIES_EMPTY)
+        await message.answer(tr(user.language, "manage_entries_empty"))
         return
 
     await state.set_state(EntryState.waiting_manage_entry_index)
-    await message.answer(_format_manage_entries_preview(preview_entries))
+    await message.answer(
+        _format_manage_entries_preview(preview_entries, user.language)
+    )
 
     if total_entries > MANAGE_ENTRIES_PREVIEW_LIMIT:
         await message.answer(
-            MANAGE_ENTRIES_PROMPT,
+            tr(user.language, "manage_entries_prompt"),
             reply_markup=manage_entries_page_keyboard(
                 MANAGE_ENTRIES_PREVIEW_LIMIT,
+                user.language,
             ),
         )
         return
 
-    await message.answer(MANAGE_ENTRIES_PROMPT)
+    await message.answer(tr(user.language, "manage_entries_prompt"))
 
 
 @router.callback_query(F.data.startswith(MANAGE_SHOW_MORE_PREFIX))
@@ -376,20 +396,29 @@ async def show_more_manage_entries(callback: CallbackQuery) -> None:
     chunk = entries[offset:offset + MANAGE_ENTRIES_PREVIEW_LIMIT]
     if not chunk:
         if callback.message:
-            await callback.message.answer(MANAGE_ENTRIES_PAGE_END)
+            await callback.message.answer(
+                tr(user.language, "manage_entries_page_end")
+            )
         await callback.answer()
         return
 
     if callback.message:
-        await callback.message.answer(_format_manage_entries_preview(chunk))
+        await callback.message.answer(
+            _format_manage_entries_preview(chunk, user.language)
+        )
         next_offset = offset + MANAGE_ENTRIES_PREVIEW_LIMIT
         if next_offset < len(entries):
             await callback.message.answer(
-                MANAGE_ENTRIES_PROMPT,
-                reply_markup=manage_entries_page_keyboard(next_offset),
+                tr(user.language, "manage_entries_prompt"),
+                reply_markup=manage_entries_page_keyboard(
+                    next_offset,
+                    user.language,
+                ),
             )
         else:
-            await callback.message.answer(MANAGE_ENTRIES_PROMPT)
+            await callback.message.answer(
+                tr(user.language, "manage_entries_prompt")
+            )
     await callback.answer()
 
 
@@ -419,14 +448,17 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer()
         if callback.message:
             await callback.message.answer(
-                tr(language, "start"),
+                tr(language, "main_menu_opened"),
                 reply_markup=main_menu_keyboard(language),
             )
         return
     if callback.data == EXPORT_INDEX_CALLBACK:
+        with get_session(callback.bot) as session:
+            user = get_user_by_telegram_id(session, callback.from_user.id)
+        language = user.language if user else "ru"
         await state.set_state(EntryState.waiting_entry_index)
         if callback.message:
-            await callback.message.answer(ENTRY_INDEX_PROMPT)
+            await callback.message.answer(tr(language, "entry_index_prompt"))
         await callback.answer()
         return
 
@@ -473,9 +505,14 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(EntryState.waiting_entry_index)
 async def show_entry_by_index(message: Message, state: FSMContext) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
     entry_index = (message.text or "").strip().lower()
     if not entry_index:
-        await message.answer(ENTRY_INDEX_INVALID_MESSAGE)
+        await message.answer(tr(user.language, "entry_index_invalid"))
         return
 
     with get_session(message.bot) as session:
@@ -487,7 +524,7 @@ async def show_entry_by_index(message: Message, state: FSMContext) -> None:
 
     if not entry:
         await message.answer(
-            ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+            tr(user.language, "entry_not_found", entry_index=entry_index)
         )
         return
 
@@ -498,9 +535,14 @@ async def show_entry_by_index(message: Message, state: FSMContext) -> None:
 
 @router.message(EntryState.waiting_manage_entry_index)
 async def manage_entry_by_index(message: Message, state: FSMContext) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
     entry_index = (message.text or "").strip().lower()
     if not entry_index:
-        await message.answer(ENTRY_INDEX_INVALID_MESSAGE)
+        await message.answer(tr(user.language, "entry_index_invalid"))
         return
 
     with get_session(message.bot) as session:
@@ -512,14 +554,17 @@ async def manage_entry_by_index(message: Message, state: FSMContext) -> None:
 
     if not entry:
         await message.answer(
-            ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+            tr(user.language, "entry_not_found", entry_index=entry_index)
         )
         return
 
     await _send_entry_details(message, user, entry)
     await message.answer(
-        MANAGE_ENTRIES_ACTIONS_PROMPT,
-        reply_markup=manage_entries_actions_keyboard(entry_index),
+        tr(user.language, "manage_entries_actions_prompt"),
+        reply_markup=manage_entries_actions_keyboard(
+            entry_index,
+            user.language,
+        ),
     )
 
 
@@ -542,7 +587,7 @@ async def start_edit_entry(callback: CallbackQuery, state: FSMContext) -> None:
     if not entry:
         if callback.message:
             await callback.message.answer(
-                ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+                tr(user.language, "entry_not_found", entry_index=entry_index)
             )
         await callback.answer()
         return
@@ -583,7 +628,7 @@ async def delete_entry(callback: CallbackQuery, state: FSMContext) -> None:
             await callback.message.answer(MANAGE_ENTRIES_DELETED)
         else:
             await callback.message.answer(
-                ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+                tr(user.language, "entry_not_found", entry_index=entry_index)
             )
     await callback.answer()
     await state.set_state(EntryState.waiting_manage_entry_index)
@@ -599,7 +644,10 @@ async def update_entry(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     entry_index = data.get("manage_entry_index")
     if not entry_index:
-        await message.answer(ENTRY_INDEX_INVALID_MESSAGE)
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        await message.answer(tr(language, "entry_index_invalid"))
         await state.set_state(EntryState.waiting_manage_entry_index)
         return
 
@@ -612,7 +660,7 @@ async def update_entry(message: Message, state: FSMContext) -> None:
 
     if not entry:
         await message.answer(
-            ENTRY_NOT_FOUND_TEMPLATE.format(entry_index=entry_index)
+            tr(user.language, "entry_not_found", entry_index=entry_index)
         )
         await state.set_state(EntryState.waiting_manage_entry_index)
         return
@@ -620,8 +668,11 @@ async def update_entry(message: Message, state: FSMContext) -> None:
     await message.answer(MANAGE_ENTRIES_UPDATED)
     await _send_entry_details(message, user, entry)
     await message.answer(
-        MANAGE_ENTRIES_ACTIONS_PROMPT,
-        reply_markup=manage_entries_actions_keyboard(entry_index),
+        tr(user.language, "manage_entries_actions_prompt"),
+        reply_markup=manage_entries_actions_keyboard(
+            entry_index,
+            user.language,
+        ),
     )
     await state.set_state(EntryState.waiting_manage_entry_index)
 

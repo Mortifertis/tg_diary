@@ -235,7 +235,7 @@ async def menu_set_monthly_time(message: Message, state: FSMContext) -> None:
 
 @router.message(lambda message: _menu_text(message, "menu_questions"))
 async def daily_questions_menu(message: Message, state: FSMContext) -> None:
-    await state.clear()
+    await state.set_state(SettingsState.in_questions_menu)
     await _show_daily_questions_menu(message)
 
 
@@ -263,7 +263,7 @@ async def save_language(message: Message, state: FSMContext) -> None:
         language = user.language if user else "ru"
         await message.answer(
             tr(language, "settings_language_prompt"),
-            reply_markup=language_keyboard(),
+            reply_markup=language_keyboard(language),
         )
         return
 
@@ -335,6 +335,7 @@ async def save_new_daily_question(message: Message, state: FSMContext) -> None:
         await message.answer(QUESTIONS_DUPLICATE_MESSAGE)
         return
     await message.answer(QUESTIONS_ADDED_MESSAGE)
+    await state.set_state(SettingsState.in_questions_menu)
     await _show_daily_questions_menu(message)
 
 
@@ -360,6 +361,7 @@ async def delete_daily_question_from_menu(
         await message.answer(QUESTIONS_NOT_FOUND_MESSAGE)
         return
     await message.answer(QUESTIONS_DELETED_MESSAGE)
+    await state.set_state(SettingsState.in_questions_menu)
     await _show_daily_questions_menu(message)
 
 
@@ -385,6 +387,7 @@ async def pause_daily_question_from_menu(
         await message.answer(QUESTIONS_NOT_FOUND_MESSAGE)
         return
     await message.answer(QUESTIONS_PAUSED_MESSAGE)
+    await state.set_state(SettingsState.in_questions_menu)
     await _show_daily_questions_menu(message)
 
 
@@ -410,6 +413,7 @@ async def resume_daily_question_from_menu(
         await message.answer(QUESTIONS_NOT_FOUND_MESSAGE)
         return
     await message.answer(QUESTIONS_RESUMED_MESSAGE)
+    await state.set_state(SettingsState.in_questions_menu)
     await _show_daily_questions_menu(message)
 
 

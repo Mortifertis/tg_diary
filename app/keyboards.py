@@ -4,10 +4,8 @@ from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, ReplyKeyboardMarkup)
 
 from app.constants import (EXPORT_INDEX_CALLBACK, MANAGE_DELETE_PREFIX,
-                           MANAGE_EDIT_PREFIX, MANAGE_ENTRIES_DELETE,
-                           MANAGE_ENTRIES_EDIT, MANAGE_ENTRIES_MORE,
-                           MANAGE_SHOW_MORE_PREFIX, MOOD_BAD_LABEL,
-                           MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL)
+                           MANAGE_EDIT_PREFIX, MANAGE_SHOW_MORE_PREFIX,
+                           MOOD_BAD_LABEL, MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL)
 from app.i18n import LANGUAGE_FLAGS, tr
 
 MOOD_KEYBOARD = InlineKeyboardMarkup(
@@ -132,12 +130,15 @@ def export_entries_keyboard(language: str) -> InlineKeyboardMarkup:
     )
 
 
-def manage_entries_page_keyboard(offset: int) -> InlineKeyboardMarkup:
+def manage_entries_page_keyboard(
+    offset: int,
+    language: str,
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=MANAGE_ENTRIES_MORE,
+                    text=tr(language, "manage_entries_more"),
                     callback_data=f"{MANAGE_SHOW_MORE_PREFIX}{offset}",
                 )
             ]
@@ -145,16 +146,19 @@ def manage_entries_page_keyboard(offset: int) -> InlineKeyboardMarkup:
     )
 
 
-def manage_entries_actions_keyboard(entry_index: str) -> InlineKeyboardMarkup:
+def manage_entries_actions_keyboard(
+    entry_index: str,
+    language: str,
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=MANAGE_ENTRIES_EDIT,
+                    text=tr(language, "manage_entries_edit"),
                     callback_data=f"{MANAGE_EDIT_PREFIX}{entry_index}",
                 ),
                 InlineKeyboardButton(
-                    text=MANAGE_ENTRIES_DELETE,
+                    text=tr(language, "manage_entries_delete"),
                     callback_data=f"{MANAGE_DELETE_PREFIX}{entry_index}",
                 ),
             ]

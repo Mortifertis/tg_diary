@@ -49,7 +49,7 @@ def test_format_manage_entries_preview_truncates_text() -> None:
         created_at=datetime(2024, 2, 1, 13, 12, 0),
     )
 
-    formatted = _format_manage_entries_preview([entry])
+    formatted = _format_manage_entries_preview([entry], "ru")
 
     assert "[u11]" in formatted
     assert "..." in formatted
