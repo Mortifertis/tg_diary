@@ -4,3 +4,4 @@ SQLAlchemy==2.0.29
 python-dotenv==1.0.1
 psycopg2-binary==2.9.9
 pytest==8.2.2
+faster-whisper==1.0.3

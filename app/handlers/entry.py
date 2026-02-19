@@ -6,15 +6,19 @@ from aiogram import Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from app.config import load_config
 from app.constants import (ENTRY_EMPTY_CONTENT_MESSAGE, ENTRY_MEDIA_MAX_IMAGES,
                            ENTRY_SAVED_MESSAGE, ENTRY_TOO_MANY_IMAGES_TEMPLATE,
                            ENTRY_UNSUPPORTED_EXTENSION_TEMPLATE,
                            NEED_START_MESSAGE)
+from app.i18n import tr
 from app.models import EntryType
 from app.prompts import build_prompt
 from app.services.attachments import (AttachmentValidationError,
                                       has_entry_content, parse_attachments)
 from app.services.entries import create_entry
+from app.services.speech import (SpeechRecognitionError,
+                                 local_speech_available, transcribe_voice)
 from app.services.timezones import message_datetime_to_utc_naive
 from app.services.users import get_user_by_telegram_id
 from app.states import EntryState
@@ -23,8 +27,11 @@ from app.storage import get_session
 router = Router()
 
 
-@router.message(EntryState.waiting_text)
-async def save_entry(message: Message, state: FSMContext) -> None:
+async def _save_entry_message(
+    message: Message,
+    state: FSMContext,
+    forced_text: str | None = None,
+) -> None:
     data = await state.get_data()
     entry_type = EntryType(data["entry_type"])
     entry_date = date.fromisoformat(data["entry_date"])
@@ -54,7 +61,7 @@ async def save_entry(message: Message, state: FSMContext) -> None:
         await message.answer(ENTRY_EMPTY_CONTENT_MESSAGE)
         return
 
-    text_value = (message.text or message.caption or "").strip()
+    text_value = forced_text or (message.text or message.caption or "").strip()
 
     if collect_daily_answers and entry_type == EntryType.daily:
         answers.append(f"{question}\n{text_value}")
@@ -98,3 +105,112 @@ async def save_entry(message: Message, state: FSMContext) -> None:
         return
 
     await state.clear()
+
+
+async def _transcribe_voice_if_needed(
+    message: Message,
+    state: FSMContext,
+    ask_confirmation: bool,
+) -> bool:
+    if not message.voice:
+        return False
+
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
+
+    if ask_confirmation:
+        from app.keyboards import voice_confirmation_keyboard
+
+        await state.set_state(
+            EntryState.waiting_voice_recognition_confirmation
+        )
+        await state.update_data(pending_voice_message=message)
+        await message.answer(
+            tr(language, "voice_convert_confirmation"),
+            reply_markup=voice_confirmation_keyboard(language, use_icons),
+        )
+        return True
+
+    if not local_speech_available():
+        await message.answer(tr(language, "voice_convert_engine_missing"))
+        return False
+
+    config = load_config()
+    model_name = config.whisper_model
+    device = config.whisper_device
+    await message.answer(tr(language, "voice_convert_in_progress"))
+    try:
+        text = await transcribe_voice(
+            message.bot,
+            message.voice,
+            model_name,
+            device,
+        )
+    except SpeechRecognitionError:
+        await message.answer(tr(language, "voice_convert_failed"))
+        return False
+
+    await message.answer(
+        tr(language, "voice_convert_done", text=text),
+    )
+    await _save_entry_message(message, state, forced_text=text)
+    return True
+
+
+@router.message(EntryState.waiting_text)
+async def save_entry(message: Message, state: FSMContext) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    mode = user.voice_recognition_mode if user else "auto"
+
+    if mode == "confirm":
+        if await _transcribe_voice_if_needed(
+            message,
+            state,
+            ask_confirmation=True,
+        ):
+            return
+    if mode == "auto":
+        if await _transcribe_voice_if_needed(
+            message,
+            state,
+            ask_confirmation=False,
+        ):
+            return
+
+    await _save_entry_message(message, state)
+
+
+@router.message(EntryState.waiting_voice_recognition_confirmation)
+async def save_entry_voice_confirmation(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+
+    if (message.text or "").strip() == tr(language, "toggle_yes"):
+        data = await state.get_data()
+        original = data.get("pending_voice_message")
+        if not isinstance(original, Message):
+            await state.set_state(EntryState.waiting_text)
+            await message.answer(tr(language, "voice_convert_failed"))
+            return
+        await state.set_state(EntryState.waiting_text)
+        await _transcribe_voice_if_needed(
+            original,
+            state,
+            ask_confirmation=False,
+        )
+        return
+
+    data = await state.get_data()
+    original = data.get("pending_voice_message")
+    await state.set_state(EntryState.waiting_text)
+    if isinstance(original, Message):
+        await _save_entry_message(original, state)
+        return
+    await _save_entry_message(message, state)

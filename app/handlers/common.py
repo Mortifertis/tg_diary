@@ -104,6 +104,10 @@ async def _handle_menu_interrupt(message: Message, state: FSMContext) -> bool:
             lambda: settings_handlers.toggle_icons(message),
         ),
         (
+            "settings_voice_recognition",
+            lambda: settings_handlers.voice_recognition_menu(message, state),
+        ),
+        (
             "menu_questions",
             lambda: settings_handlers.daily_questions_menu(message, state),
         ),
@@ -263,7 +267,10 @@ async def start(message: Message) -> None:
         ensure_default_daily_questions(session, user)
     await message.answer(
         tr(user.language, "start"),
-        reply_markup=main_menu_keyboard(user.language),
+        reply_markup=main_menu_keyboard(
+            user.language,
+            bool(user.enable_menu_icons),
+        ),
     )
 
 
@@ -273,7 +280,8 @@ async def stats(message: Message) -> None:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(
-                tr("ru", "start"), reply_markup=main_menu_keyboard("ru")
+                tr("ru", "start"),
+                reply_markup=main_menu_keyboard("ru", True),
             )
             return
         total = count_entries(session, user)
@@ -291,7 +299,10 @@ async def stats(message: Message) -> None:
         f"{STATS_TOTAL_TEMPLATE.format(total=total)}\n"
         f"{STATS_STREAK_TEMPLATE.format(streak=streak)}\n"
         f"{STATS_MOOD_TEMPLATE.format(mood_line=mood_line)}",
-        reply_markup=main_menu_keyboard(user.language),
+        reply_markup=main_menu_keyboard(
+            user.language,
+            bool(user.enable_menu_icons),
+        ),
     )
 
 
@@ -327,7 +338,10 @@ async def status(message: Message) -> None:
         f"{weekly_status}\n"
         f"{monthly_status}\n"
         f"{STATUS_PAUSE_TEMPLATE.format(pause=pause)}",
-        reply_markup=main_menu_keyboard(user.language),
+        reply_markup=main_menu_keyboard(
+            user.language,
+            bool(user.enable_menu_icons),
+        ),
     )
 
 
@@ -380,7 +394,10 @@ async def reminder_settings_menu(message: Message) -> None:
     language = user.language if user else "ru"
     await message.answer(
         tr(language, "settings_menu"),
-        reply_markup=reminder_settings_keyboard(language),
+        reply_markup=reminder_settings_keyboard(
+            language,
+            bool(user.enable_menu_icons) if user else True,
+        ),
     )
 
 
@@ -401,19 +418,28 @@ async def back_to_main_menu(message: Message, state: FSMContext) -> None:
         SettingsState.waiting_pause_daily_question_id.state,
         SettingsState.waiting_resume_daily_question_id.state,
         SettingsState.in_questions_menu.state,
+        SettingsState.in_appearance_settings.state,
+        SettingsState.waiting_toggle_icons_value.state,
+        SettingsState.waiting_voice_recognition_mode.state,
     }
     if current_state in settings_states:
         await state.clear()
         await message.answer(
             tr(language, "settings_menu"),
-            reply_markup=reminder_settings_keyboard(language),
+            reply_markup=reminder_settings_keyboard(
+            language,
+            bool(user.enable_menu_icons) if user else True,
+        ),
         )
         return
 
     await state.clear()
     await message.answer(
         tr(language, "main_menu_opened"),
-        reply_markup=main_menu_keyboard(language),
+        reply_markup=main_menu_keyboard(
+            language,
+            bool(user.enable_menu_icons) if user else True,
+        ),
     )
 
 
@@ -429,13 +455,19 @@ async def view_entries(message: Message) -> None:
     if not recent_entries:
         await message.answer(
             tr(user.language, "recent_entries_empty"),
-            reply_markup=main_menu_keyboard(user.language),
+            reply_markup=main_menu_keyboard(
+            user.language,
+            bool(user.enable_menu_icons),
+        ),
         )
         return
 
     await message.answer(
         _format_recent_entries(recent_entries, user),
-        reply_markup=main_menu_keyboard(user.language),
+        reply_markup=main_menu_keyboard(
+            user.language,
+            bool(user.enable_menu_icons),
+        ),
     )
     await message.answer(
         EXPORT_MENU_PROMPT, reply_markup=export_entries_keyboard(user.language)
@@ -471,6 +503,7 @@ async def manage_entries(message: Message, state: FSMContext) -> None:
             reply_markup=manage_entries_page_keyboard(
                 MANAGE_ENTRIES_PREVIEW_LIMIT,
                 user.language,
+                bool(user.enable_menu_icons),
             ),
         )
         return
@@ -519,6 +552,7 @@ async def show_more_manage_entries(callback: CallbackQuery) -> None:
                 reply_markup=manage_entries_page_keyboard(
                     next_offset,
                     user.language,
+                    bool(user.enable_menu_icons),
                 ),
             )
         else:
@@ -555,7 +589,10 @@ async def export_entries(callback: CallbackQuery, state: FSMContext) -> None:
         if callback.message:
             await callback.message.answer(
                 tr(language, "main_menu_opened"),
-                reply_markup=main_menu_keyboard(language),
+                reply_markup=main_menu_keyboard(
+            language,
+            bool(user.enable_menu_icons) if user else True,
+        ),
             )
         return
     if callback.data == EXPORT_INDEX_CALLBACK:
@@ -676,6 +713,7 @@ async def manage_entry_by_index(message: Message, state: FSMContext) -> None:
         reply_markup=manage_entries_actions_keyboard(
             entry_index,
             user.language,
+            bool(user.enable_menu_icons),
         ),
     )
 
@@ -784,6 +822,7 @@ async def update_entry(message: Message, state: FSMContext) -> None:
         reply_markup=manage_entries_actions_keyboard(
             entry_index,
             user.language,
+            bool(user.enable_menu_icons),
         ),
     )
     await state.set_state(EntryState.waiting_manage_entry_index)

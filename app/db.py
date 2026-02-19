@@ -80,3 +80,10 @@ def _ensure_sqlite_schema_compatibility(engine) -> None:
                     "INTEGER NOT NULL DEFAULT 3"
                 )
             )
+        if "voice_recognition_mode" not in user_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN voice_recognition_mode "
+                    "VARCHAR(16) NOT NULL DEFAULT 'auto'"
+                )
+            )

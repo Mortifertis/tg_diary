@@ -34,7 +34,8 @@ from app.keyboards import (appearance_settings_keyboard,
                            daily_questions_settings_keyboard,
                            language_keyboard, questions_settings_keyboard,
                            reminder_time_settings_keyboard,
-                           settings_toggle_options_keyboard)
+                           settings_toggle_options_keyboard,
+                           settings_voice_recognition_keyboard)
 from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
                                     reset_daily_questions_to_default,
@@ -317,6 +318,67 @@ async def _show_toggle_icons_menu(
     )
 
 
+@router.message(
+    lambda message: _menu_text(message, "settings_voice_recognition")
+)
+async def voice_recognition_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    await state.set_state(SettingsState.waiting_voice_recognition_mode)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
+    await message.answer(
+        tr(language, "settings_voice_recognition_prompt"),
+        reply_markup=settings_voice_recognition_keyboard(language, use_icons),
+    )
+
+
+@router.message(SettingsState.waiting_voice_recognition_mode)
+async def save_voice_recognition_mode(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    mode = None
+    if _menu_text(message, "settings_voice_recognition_auto"):
+        mode = "auto"
+    if _menu_text(message, "settings_voice_recognition_confirm"):
+        mode = "confirm"
+    if _menu_text(message, "settings_voice_recognition_off"):
+        mode = "off"
+
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(tr("ru", "need_start"))
+            return
+        language = user.language
+        use_icons = bool(user.enable_menu_icons)
+        if mode is None:
+            await message.answer(
+                tr(language, "settings_voice_recognition_prompt"),
+                reply_markup=settings_voice_recognition_keyboard(
+                    language,
+                    use_icons,
+                ),
+            )
+            return
+        user.voice_recognition_mode = mode
+
+    await state.clear()
+    mode_key = {
+        "auto": "settings_voice_recognition_mode_auto",
+        "confirm": "settings_voice_recognition_mode_confirm",
+        "off": "settings_voice_recognition_mode_off",
+    }[mode]
+    await message.answer(
+        tr(language, mode_key),
+        reply_markup=appearance_settings_keyboard(language, use_icons),
+    )
+
+
 @router.message(lambda message: _menu_text(message, "settings_language"))
 async def settings_language_menu(
     message: Message,
@@ -326,9 +388,10 @@ async def settings_language_menu(
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
     await message.answer(
         tr(language, "settings_language_prompt"),
-        reply_markup=language_keyboard(language),
+        reply_markup=language_keyboard(language, use_icons),
     )
 
 
@@ -339,9 +402,10 @@ async def save_language(message: Message, state: FSMContext) -> None:
         with get_session(message.bot) as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
+        use_icons = bool(user.enable_menu_icons) if user else True
         await message.answer(
             tr(language, "settings_language_prompt"),
-            reply_markup=language_keyboard(language),
+            reply_markup=language_keyboard(language, use_icons),
         )
         return
 

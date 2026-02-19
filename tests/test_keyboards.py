@@ -7,7 +7,9 @@ from app.i18n import tr
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
                            QUESTIONS_SETTINGS_KEYBOARD, language_keyboard,
                            main_menu_keyboard,
-                           settings_toggle_options_keyboard)
+                           settings_toggle_options_keyboard,
+                           settings_voice_recognition_keyboard,
+                           voice_confirmation_keyboard)
 
 
 def test_main_menu_contains_new_structure() -> None:
@@ -72,3 +74,20 @@ def test_toggle_options_keyboard_contains_enable_disable() -> None:
 
     assert tr("ru", "toggle_enable") in texts
     assert tr("ru", "toggle_disable") in texts
+
+
+def test_voice_recognition_settings_keyboard_contains_all_modes() -> None:
+    keyboard = settings_voice_recognition_keyboard("ru", use_icons=False)
+    texts = [button.text for row in keyboard.keyboard for button in row]
+
+    assert tr("ru", "settings_voice_recognition_auto") in texts
+    assert tr("ru", "settings_voice_recognition_confirm") in texts
+    assert tr("ru", "settings_voice_recognition_off") in texts
+
+
+def test_voice_confirmation_keyboard_contains_yes_no() -> None:
+    keyboard = voice_confirmation_keyboard("ru", use_icons=False)
+    texts = [button.text for row in keyboard.keyboard for button in row]
+
+    assert tr("ru", "toggle_yes") in texts
+    assert tr("ru", "toggle_no") in texts

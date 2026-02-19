@@ -42,6 +42,7 @@ MENU_ICONS = {
     "menu_questions_change": "✏️",
     "menu_questions_count": "🔢",
     "settings_toggle_icons": "✨",
+    "settings_voice_recognition": "🎙️",
     "toggle_enable": "✅",
     "toggle_disable": "🚫",
     "menu_back": "↩️",
@@ -88,6 +89,20 @@ class ToggleOptionMenu:
 
 
 MENU_ICONS_TOGGLE_MENU = ToggleOptionMenu(setting_key="settings_toggle_icons")
+VOICE_CONFIRMATION_MENU = ToggleOptionMenu(
+    setting_key="voice_convert_confirmation",
+    enable_key="toggle_yes",
+    disable_key="toggle_no",
+)
+VOICE_RECOGNITION_AUTO_MENU = ToggleOptionMenu(
+    setting_key="settings_voice_recognition_auto",
+)
+VOICE_RECOGNITION_CONFIRM_MENU = ToggleOptionMenu(
+    setting_key="settings_voice_recognition_confirm",
+)
+VOICE_RECOGNITION_OFF_MENU = ToggleOptionMenu(
+    setting_key="settings_voice_recognition_off",
+)
 
 
 def _button_text(language: str, key: str, use_icons: bool) -> str:
@@ -247,6 +262,15 @@ def appearance_settings_keyboard(
             ],
             [
                 KeyboardButton(
+                    text=_button_text(
+                        language,
+                        "settings_voice_recognition",
+                        use_icons,
+                    ),
+                )
+            ],
+            [
+                KeyboardButton(
                     text=_button_text(language, "menu_back", use_icons),
                 )
             ],
@@ -260,6 +284,56 @@ def settings_toggle_options_keyboard(
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
     return MENU_ICONS_TOGGLE_MENU.keyboard(language, use_icons)
+
+
+def settings_voice_recognition_keyboard(
+    language: str,
+    use_icons: bool = True,
+) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(
+                    text=_button_text(
+                        language,
+                        "settings_voice_recognition_auto",
+                        use_icons,
+                    ),
+                )
+            ],
+            [
+                KeyboardButton(
+                    text=_button_text(
+                        language,
+                        "settings_voice_recognition_confirm",
+                        use_icons,
+                    ),
+                )
+            ],
+            [
+                KeyboardButton(
+                    text=_button_text(
+                        language,
+                        "settings_voice_recognition_off",
+                        use_icons,
+                    ),
+                )
+            ],
+            [
+                KeyboardButton(
+                    text=_button_text(language, "menu_back", use_icons),
+                )
+            ],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def voice_confirmation_keyboard(
+    language: str,
+    use_icons: bool = True,
+) -> ReplyKeyboardMarkup:
+    return VOICE_CONFIRMATION_MENU.keyboard(language, use_icons)
 
 
 def language_keyboard(

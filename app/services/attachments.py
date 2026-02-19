@@ -12,10 +12,16 @@ class AttachmentValidationError(ValueError):
     """Raised when attachment payload is invalid."""
 
 
+def _voice_extension(mime_type: str | None) -> str:
+    if mime_type == "audio/mpeg":
+        return ".mp3"
+    return ".ogg"
+
+
 def parse_attachments(message: Message) -> list[dict[str, str]]:
     attachments: list[dict[str, str]] = []
 
-    photos = message.photo or []
+    photos = getattr(message, "photo", None) or []
     if len(photos) > ENTRY_MEDIA_MAX_IMAGES:
         raise AttachmentValidationError("too_many_images")
 
@@ -30,8 +36,8 @@ def parse_attachments(message: Message) -> list[dict[str, str]]:
             }
         )
 
-    if message.document:
-        document = message.document
+    document = getattr(message, "document", None)
+    if document:
         extension = Path(document.file_name or "").suffix.lower()
         if extension in ALLOWED_IMAGE_EXTENSIONS:
             attachment_type = "image"
@@ -46,6 +52,18 @@ def parse_attachments(message: Message) -> list[dict[str, str]]:
                 "file_id": document.file_id,
                 "file_name": document.file_name or "document",
                 "extension": extension or "unknown",
+            }
+        )
+
+    voice = getattr(message, "voice", None)
+    if voice:
+        extension = _voice_extension(voice.mime_type)
+        attachments.append(
+            {
+                "type": "file",
+                "file_id": voice.file_id,
+                "file_name": f"voice_{voice.file_unique_id}{extension}",
+                "extension": extension,
             }
         )
 

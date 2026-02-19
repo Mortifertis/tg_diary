@@ -25,6 +25,11 @@ class User(Base):
     timezone = Column(String(64), nullable=False)
     language = Column(String(8), nullable=False, default="ru")
     enable_menu_icons = Column(Boolean, nullable=False, default=True)
+    voice_recognition_mode = Column(
+        String(16),
+        nullable=False,
+        default="auto",
+    )
     daily_questions_count = Column(Integer, nullable=False, default=3)
     daily_time = Column(String(5), nullable=False)
     weekly_day = Column(Integer, nullable=False)
