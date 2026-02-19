@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, ReplyKeyboardMarkup)
 
@@ -40,8 +42,52 @@ MENU_ICONS = {
     "menu_questions_change": "✏️",
     "menu_questions_count": "🔢",
     "settings_toggle_icons": "✨",
+    "toggle_enable": "✅",
+    "toggle_disable": "🚫",
     "menu_back": "↩️",
 }
+
+
+@dataclass(frozen=True)
+class ToggleOptionMenu:
+    setting_key: str
+    enable_key: str = "toggle_enable"
+    disable_key: str = "toggle_disable"
+
+    def keyboard(
+        self,
+        language: str,
+        use_icons: bool = True,
+    ) -> ReplyKeyboardMarkup:
+        return ReplyKeyboardMarkup(
+            keyboard=[
+                [
+                    KeyboardButton(
+                        text=_button_text(
+                            language,
+                            self.enable_key,
+                            use_icons,
+                        ),
+                    ),
+                    KeyboardButton(
+                        text=_button_text(
+                            language,
+                            self.disable_key,
+                            use_icons,
+                        ),
+                    ),
+                ],
+                [
+                    KeyboardButton(
+                        text=_button_text(language, "menu_back", use_icons),
+                    )
+                ],
+            ],
+            resize_keyboard=True,
+        )
+
+
+MENU_ICONS_TOGGLE_MENU = ToggleOptionMenu(setting_key="settings_toggle_icons")
 
 
 def _button_text(language: str, key: str, use_icons: bool) -> str:
@@ -101,13 +147,25 @@ def reminder_settings_keyboard(
             ],
             [
                 KeyboardButton(
-                    text=_button_text(language, "settings_language", use_icons),
+                    text=_button_text(
+                        language,
+                        "settings_language",
+                        use_icons,
+                    ),
                 ),
                 KeyboardButton(
-                    text=_button_text(language, "settings_appearance", use_icons),
+                    text=_button_text(
+                        language,
+                        "settings_appearance",
+                        use_icons,
+                    ),
                 ),
             ],
-            [KeyboardButton(text=_button_text(language, "menu_back", use_icons))],
+            [
+                KeyboardButton(
+                    text=_button_text(language, "menu_back", use_icons),
+                )
+            ],
         ],
         resize_keyboard=True,
     )
@@ -120,12 +178,20 @@ def reminder_time_settings_keyboard(
     return ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text=_button_text(language, "menu_daily", use_icons)),
-                KeyboardButton(text=_button_text(language, "menu_weekly", use_icons)),
+                KeyboardButton(
+                    text=_button_text(language, "menu_daily", use_icons),
+                ),
+                KeyboardButton(
+                    text=_button_text(language, "menu_weekly", use_icons),
+                ),
             ],
             [
-                KeyboardButton(text=_button_text(language, "menu_monthly", use_icons)),
-                KeyboardButton(text=_button_text(language, "menu_back", use_icons)),
+                KeyboardButton(
+                    text=_button_text(language, "menu_monthly", use_icons),
+                ),
+                KeyboardButton(
+                    text=_button_text(language, "menu_back", use_icons),
+                ),
             ],
         ],
         resize_keyboard=True,
@@ -140,13 +206,25 @@ def daily_questions_settings_keyboard(
         keyboard=[
             [
                 KeyboardButton(
-                    text=_button_text(language, "menu_questions_change", use_icons),
+                    text=_button_text(
+                        language,
+                        "menu_questions_change",
+                        use_icons,
+                    ),
                 ),
                 KeyboardButton(
-                    text=_button_text(language, "menu_questions_count", use_icons),
+                    text=_button_text(
+                        language,
+                        "menu_questions_count",
+                        use_icons,
+                    ),
                 ),
             ],
-            [KeyboardButton(text=_button_text(language, "menu_back", use_icons))],
+            [
+                KeyboardButton(
+                    text=_button_text(language, "menu_back", use_icons),
+                )
+            ],
         ],
         resize_keyboard=True,
     )
@@ -160,16 +238,34 @@ def appearance_settings_keyboard(
         keyboard=[
             [
                 KeyboardButton(
-                    text=_button_text(language, "settings_toggle_icons", use_icons),
+                    text=_button_text(
+                        language,
+                        "settings_toggle_icons",
+                        use_icons,
+                    ),
                 )
             ],
-            [KeyboardButton(text=_button_text(language, "menu_back", use_icons))],
+            [
+                KeyboardButton(
+                    text=_button_text(language, "menu_back", use_icons),
+                )
+            ],
         ],
         resize_keyboard=True,
     )
 
 
-def language_keyboard(language: str, use_icons: bool = True) -> ReplyKeyboardMarkup:
+def settings_toggle_options_keyboard(
+    language: str,
+    use_icons: bool = True,
+) -> ReplyKeyboardMarkup:
+    return MENU_ICONS_TOGGLE_MENU.keyboard(language, use_icons)
+
+
+def language_keyboard(
+    language: str,
+    use_icons: bool = True,
+) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -180,7 +276,11 @@ def language_keyboard(language: str, use_icons: bool = True) -> ReplyKeyboardMar
                 KeyboardButton(text=LANGUAGE_FLAGS["fr"]),
                 KeyboardButton(text=LANGUAGE_FLAGS["de"]),
             ],
-            [KeyboardButton(text=_button_text(language, "menu_back", use_icons))],
+            [
+                KeyboardButton(
+                    text=_button_text(language, "menu_back", use_icons),
+                )
+            ],
         ],
         resize_keyboard=True,
     )
@@ -194,25 +294,47 @@ def questions_settings_keyboard(
         keyboard=[
             [
                 KeyboardButton(
-                    text=_button_text(language, "menu_questions_add", use_icons),
+                    text=_button_text(
+                        language,
+                        "menu_questions_add",
+                        use_icons,
+                    ),
                 ),
                 KeyboardButton(
-                    text=_button_text(language, "menu_questions_delete", use_icons),
+                    text=_button_text(
+                        language,
+                        "menu_questions_delete",
+                        use_icons,
+                    ),
                 ),
             ],
             [
                 KeyboardButton(
-                    text=_button_text(language, "menu_questions_pause", use_icons),
+                    text=_button_text(
+                        language,
+                        "menu_questions_pause",
+                        use_icons,
+                    ),
                 ),
                 KeyboardButton(
-                    text=_button_text(language, "menu_questions_resume", use_icons),
+                    text=_button_text(
+                        language,
+                        "menu_questions_resume",
+                        use_icons,
+                    ),
                 ),
             ],
             [
                 KeyboardButton(
-                    text=_button_text(language, "menu_questions_reset", use_icons),
+                    text=_button_text(
+                        language,
+                        "menu_questions_reset",
+                        use_icons,
+                    ),
                 ),
-                KeyboardButton(text=_button_text(language, "menu_back", use_icons)),
+                KeyboardButton(
+                    text=_button_text(language, "menu_back", use_icons),
+                ),
             ],
         ],
         resize_keyboard=True,

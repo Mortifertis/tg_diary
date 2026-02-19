@@ -33,7 +33,8 @@ from app.i18n import LANGUAGE_FLAGS, menu_variants, tr
 from app.keyboards import (appearance_settings_keyboard,
                            daily_questions_settings_keyboard,
                            language_keyboard, questions_settings_keyboard,
-                           reminder_time_settings_keyboard)
+                           reminder_time_settings_keyboard,
+                           settings_toggle_options_keyboard)
 from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
                                     reset_daily_questions_to_default,
@@ -305,6 +306,17 @@ async def appearance_menu(message: Message, state: FSMContext) -> None:
     )
 
 
+async def _show_toggle_icons_menu(
+    message: Message,
+    language: str,
+    use_icons: bool,
+) -> None:
+    await message.answer(
+        tr(language, "settings_toggle_icons_prompt"),
+        reply_markup=settings_toggle_options_keyboard(language, use_icons),
+    )
+
+
 @router.message(lambda message: _menu_text(message, "settings_language"))
 async def settings_language_menu(
     message: Message,
@@ -347,17 +359,42 @@ async def save_language(message: Message, state: FSMContext) -> None:
 
 
 @router.message(lambda message: _menu_text(message, "settings_toggle_icons"))
-async def toggle_icons(message: Message) -> None:
+async def toggle_icons(message: Message, state: FSMContext) -> None:
+    await state.set_state(SettingsState.waiting_toggle_icons_value)
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(tr("ru", "need_start"))
             return
-        user.enable_menu_icons = not bool(user.enable_menu_icons)
         language = user.language
         use_icons = bool(user.enable_menu_icons)
 
+    await _show_toggle_icons_menu(message, language, use_icons)
+
+
+@router.message(SettingsState.waiting_toggle_icons_value)
+async def save_toggle_icons(message: Message, state: FSMContext) -> None:
+    selected_enable = _menu_text(message, "toggle_enable")
+    selected_disable = _menu_text(message, "toggle_disable")
+    if not (selected_enable or selected_disable):
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        use_icons = bool(user.enable_menu_icons) if user else True
+        await _show_toggle_icons_menu(message, language, use_icons)
+        return
+
+    use_icons = selected_enable
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(tr("ru", "need_start"))
+            return
+        user.enable_menu_icons = use_icons
+        language = user.language
+
     key = "settings_icons_enabled" if use_icons else "settings_icons_disabled"
+    await state.clear()
     await message.answer(
         tr(language, key),
         reply_markup=appearance_settings_keyboard(language, use_icons),

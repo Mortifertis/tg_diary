@@ -18,6 +18,7 @@ class SettingsState(StatesGroup):
     waiting_resume_daily_question_id = State()
     waiting_daily_questions_count = State()
     waiting_language = State()
+    waiting_toggle_icons_value = State()
     in_questions_menu = State()
     in_daily_questions_settings = State()
     in_appearance_settings = State()

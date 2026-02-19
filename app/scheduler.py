@@ -42,7 +42,10 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                 for reminder in reminders:
                     question_queue = []
                     if reminder.entry_type == EntryType.daily:
-                        daily_questions = list_active_daily_questions(session, user)
+                        daily_questions = list_active_daily_questions(
+                            session,
+                            user,
+                        )
                         count = min(
                             max(int(user.daily_questions_count or 3), 1),
                             10,
@@ -87,7 +90,9 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                             "question": question,
                             "mood": None,
                             "question_queue": question_queue,
-                            "collect_daily_answers": reminder.entry_type == EntryType.daily,
+                            "collect_daily_answers": (
+                                reminder.entry_type == EntryType.daily
+                            ),
                             "answers": [],
                         },
                     )

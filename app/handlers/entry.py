@@ -90,7 +90,10 @@ async def save_entry(message: Message, state: FSMContext) -> None:
 
     if question_queue and not collect_daily_answers:
         next_question = question_queue.pop(0)
-        await state.update_data(question=next_question, question_queue=question_queue)
+        await state.update_data(
+            question=next_question,
+            question_queue=question_queue,
+        )
         await message.answer(build_prompt(entry_type, next_question))
         return
 
