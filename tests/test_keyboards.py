@@ -5,20 +5,18 @@ from app.constants import (EXPORT_VIEW_BY_INDEX, MENU_CREATE_ENTRY,
                            MENU_SETTINGS, MENU_VIEW_ENTRIES)
 from app.i18n import tr
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
-                           QUESTIONS_SETTINGS_KEYBOARD, language_keyboard)
+                           QUESTIONS_SETTINGS_KEYBOARD, language_keyboard,
+                           main_menu_keyboard)
 
 
 def test_main_menu_contains_new_structure() -> None:
-    texts = [
-        button.text for row in MAIN_MENU_KEYBOARD.keyboard for button in row
-    ]
+    keyboard = main_menu_keyboard("ru", use_icons=False)
+    texts = [button.text for row in keyboard.keyboard for button in row]
 
-    assert texts == [
-        MENU_CREATE_ENTRY,
-        MENU_SETTINGS,
-        MENU_VIEW_ENTRIES,
-        MENU_MANAGE_ENTRIES,
-    ]
+    assert texts == [MENU_CREATE_ENTRY, MENU_SETTINGS, MENU_VIEW_ENTRIES, MENU_MANAGE_ENTRIES]
+
+    icon_texts = [button.text for row in MAIN_MENU_KEYBOARD.keyboard for button in row]
+    assert icon_texts[0].startswith("📝")
 
 
 def test_questions_menu_contains_reset_button() -> None:
@@ -38,14 +36,14 @@ def test_questions_menu_contains_back_button() -> None:
         for button in row
     ]
 
-    assert tr("ru", "menu_back") in texts
+    assert any(text.endswith(tr("ru", "menu_back")) for text in texts)
 
 
 def test_language_menu_contains_back_button() -> None:
     keyboard = language_keyboard("en")
     texts = [button.text for row in keyboard.keyboard for button in row]
 
-    assert tr("en", "menu_back") in texts
+    assert any(text.endswith(tr("en", "menu_back")) for text in texts)
 
 
 def test_export_menu_contains_entry_index_button() -> None:

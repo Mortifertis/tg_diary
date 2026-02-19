@@ -13,7 +13,7 @@ from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
 from app.prompts import build_prompt
 from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
-                           WEEKLY_QUESTIONS, pick_question, pick_questions)
+                           WEEKLY_QUESTIONS, pick_questions)
 from app.services.questions import list_active_daily_questions
 from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
                                     due_weekly_reminder)
@@ -42,12 +42,17 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                 for reminder in reminders:
                     question_queue = []
                     if reminder.entry_type == EntryType.daily:
-                        daily_questions = list_active_daily_questions(
-                            session, user
+                        daily_questions = list_active_daily_questions(session, user)
+                        count = min(
+                            max(int(user.daily_questions_count or 3), 1),
+                            10,
                         )
-                        question = pick_question(
-                            daily_questions or DAILY_QUESTIONS
+                        selected_questions = pick_questions(
+                            daily_questions or DAILY_QUESTIONS,
+                            count,
                         )
+                        question = selected_questions[0]
+                        question_queue = selected_questions[1:]
                     elif reminder.entry_type == EntryType.weekly:
                         questions = pick_questions(
                             WEEKLY_QUESTIONS, random.randint(4, 6)
@@ -82,6 +87,8 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                             "question": question,
                             "mood": None,
                             "question_queue": question_queue,
+                            "collect_daily_answers": reminder.entry_type == EntryType.daily,
+                            "answers": [],
                         },
                     )
 

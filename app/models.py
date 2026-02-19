@@ -24,6 +24,8 @@ class User(Base):
     telegram_id = Column(Integer, unique=True, nullable=False)
     timezone = Column(String(64), nullable=False)
     language = Column(String(8), nullable=False, default="ru")
+    enable_menu_icons = Column(Boolean, nullable=False, default=True)
+    daily_questions_count = Column(Integer, nullable=False, default=3)
     daily_time = Column(String(5), nullable=False)
     weekly_day = Column(Integer, nullable=False)
     weekly_time = Column(String(5), nullable=False)

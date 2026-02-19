@@ -31,6 +31,8 @@ async def save_entry(message: Message, state: FSMContext) -> None:
     question = data.get("question")
     mood = data.get("mood")
     question_queue = data.get("question_queue") or []
+    collect_daily_answers = bool(data.get("collect_daily_answers"))
+    answers = data.get("answers") or []
 
     try:
         attachments = parse_attachments(message)
@@ -52,6 +54,22 @@ async def save_entry(message: Message, state: FSMContext) -> None:
         await message.answer(ENTRY_EMPTY_CONTENT_MESSAGE)
         return
 
+    text_value = (message.text or message.caption or "").strip()
+
+    if collect_daily_answers and entry_type == EntryType.daily:
+        answers.append(f"{question}\n{text_value}")
+        if question_queue:
+            next_question = question_queue.pop(0)
+            await state.update_data(
+                question=next_question,
+                question_queue=question_queue,
+                answers=answers,
+            )
+            await message.answer(build_prompt(entry_type, next_question))
+            return
+        text_value = "\n\n".join(answers)
+        question = None
+
     with get_session(message.bot) as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
@@ -62,7 +80,7 @@ async def save_entry(message: Message, state: FSMContext) -> None:
             user=user,
             entry_type=entry_type,
             entry_date=entry_date,
-            text=(message.text or message.caption or "").strip(),
+            text=text_value,
             mood=mood,
             question=question,
             attachments=attachments,
@@ -70,11 +88,9 @@ async def save_entry(message: Message, state: FSMContext) -> None:
         )
     await message.answer(ENTRY_SAVED_MESSAGE)
 
-    if question_queue:
+    if question_queue and not collect_daily_answers:
         next_question = question_queue.pop(0)
-        await state.update_data(
-            question=next_question, question_queue=question_queue
-        )
+        await state.update_data(question=next_question, question_queue=question_queue)
         await message.answer(build_prompt(entry_type, next_question))
         return
 

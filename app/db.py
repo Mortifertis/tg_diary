@@ -58,13 +58,25 @@ def _ensure_sqlite_schema_compatibility(engine) -> None:
     user_columns = {
         column["name"] for column in inspector.get_columns("users")
     }
-    if "language" in user_columns:
-        return
-
     with engine.begin() as connection:
-        connection.execute(
-            text(
-                "ALTER TABLE users ADD COLUMN language "
-                "VARCHAR(8) NOT NULL DEFAULT 'ru'"
+        if "language" not in user_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN language "
+                    "VARCHAR(8) NOT NULL DEFAULT 'ru'"
+                )
             )
-        )
+        if "enable_menu_icons" not in user_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN enable_menu_icons "
+                    "BOOLEAN NOT NULL DEFAULT 1"
+                )
+            )
+        if "daily_questions_count" not in user_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN daily_questions_count "
+                    "INTEGER NOT NULL DEFAULT 3"
+                )
+            )

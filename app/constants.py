@@ -11,6 +11,9 @@ NEED_START_MESSAGE = "Сначала напишите /start."
 MOOD_SAVED_MESSAGE = "Настроение сохранено."
 ENTRY_SAVED_MESSAGE = "Сохранено. Спасибо!"
 
+MAX_DAILY_QUESTIONS_PER_ENTRY = 10
+DEFAULT_DAILY_QUESTIONS_PER_ENTRY = 3
+
 TIME_USAGE_MESSAGE = "Укажи время: HH:MM"
 WEEKLY_USAGE_MESSAGE = "Укажи день недели и время: 6 20:00 (0=пн, 6=вс)"
 MONTHLY_USAGE_MESSAGE = "Укажи день месяца и время: 1 20:00"
