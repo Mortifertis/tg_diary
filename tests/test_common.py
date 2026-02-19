@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from types import SimpleNamespace
 
 from app.handlers.common import (_build_edit_input_placeholder,
                                  _format_manage_entries_preview,
-                                 _format_recent_entries)
+                                 _format_recent_entries, _menu_text)
 from app.models import AttachmentType, Entry, EntryAttachment, EntryType, User
 
 
@@ -67,3 +68,9 @@ def test_build_edit_input_placeholder_truncates_and_flattens_lines() -> None:
     assert "\n" not in placeholder
     assert len(placeholder) == 64
     assert placeholder.endswith("...")
+
+
+def test_menu_text_accepts_icon_prefix() -> None:
+    message = SimpleNamespace(text="📝 Сделать новую запись")
+
+    assert _menu_text(message, "menu_create")

@@ -42,7 +42,14 @@ router = Router()
 
 
 def _menu_text(message: Message, key: str) -> bool:
-    return (message.text or "") in menu_variants(key)
+    text = (message.text or "").strip()
+    variants = menu_variants(key)
+    if text in variants:
+        return True
+    parts = text.split(maxsplit=1)
+    if len(parts) == 2 and parts[1] in variants:
+        return True
+    return False
 
 
 def _flag_to_language(flag: str | None) -> str | None:
