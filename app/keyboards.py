@@ -7,7 +7,10 @@ from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
 
 from app.constants import (EXPORT_INDEX_CALLBACK, MANAGE_DELETE_PREFIX,
                            MANAGE_EDIT_PREFIX, MANAGE_SHOW_MORE_PREFIX,
-                           MOOD_BAD_LABEL, MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL)
+                           MOOD_BAD_LABEL, MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL,
+                           VIEW_ACTION_BACK, VIEW_ACTION_BACKUP,
+                           VIEW_ACTION_CALLBACK_PREFIX, VIEW_ACTION_EXPORT,
+                           VIEW_ACTION_FIND_BY_ID, VIEW_SHOW_MORE_PREFIX)
 from app.i18n import LANGUAGE_FLAGS, tr
 
 MOOD_KEYBOARD = InlineKeyboardMarkup(
@@ -415,6 +418,45 @@ def questions_settings_keyboard(
     )
 
 
+def view_entries_actions_keyboard(language: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=tr(language, "view_find_by_id"),
+                    callback_data=(
+                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_FIND_BY_ID}"
+                    ),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=tr(language, "view_export"),
+                    callback_data=(
+                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_EXPORT}"
+                    ),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=tr(language, "view_backup"),
+                    callback_data=(
+                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_BACKUP}"
+                    ),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=tr(language, "view_back"),
+                    callback_data=(
+                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_BACK}"
+                    ),
+                )
+            ],
+        ]
+    )
+
+
 def export_entries_keyboard(language: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -450,16 +492,23 @@ def export_entries_keyboard(language: str) -> InlineKeyboardMarkup:
             ],
             [
                 InlineKeyboardButton(
-                    text=tr(language, "export_view_by_index"),
-                    callback_data=EXPORT_INDEX_CALLBACK,
-                )
-            ],
-            [
-                InlineKeyboardButton(
                     text=tr(language, "export_back"),
                     callback_data="export:back",
                 )
             ],
+        ]
+    )
+
+
+def view_entries_page_keyboard(language: str, offset: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=tr(language, "view_more"),
+                    callback_data=f"{VIEW_SHOW_MORE_PREFIX}{offset}",
+                )
+            ]
         ]
     )
 

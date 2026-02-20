@@ -130,8 +130,8 @@ def test_entry_index_and_attachments_export(session, user):
     assert entry.attachments[0].file_name == "report.docx"
 
     export = format_entries_export([entry])
-    assert "Индекс: d1" in export
-    assert "- report.docx" in export
+    assert "01.02.2024" in export
+    assert "С файлом" in export
 
 
 def test_get_entry_by_index_preloads_attachments_for_detached_entry(

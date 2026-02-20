@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from app.constants import (EXPORT_VIEW_BY_INDEX, MENU_CREATE_ENTRY,
-                           MENU_MANAGE_ENTRIES, MENU_QUESTIONS_RESET,
-                           MENU_SETTINGS, MENU_VIEW_ENTRIES)
+from app.constants import (MENU_CREATE_ENTRY, MENU_MANAGE_ENTRIES,
+                           MENU_QUESTIONS_RESET, MENU_SETTINGS,
+                           MENU_VIEW_ENTRIES)
 from app.i18n import tr
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
                            QUESTIONS_SETTINGS_KEYBOARD, language_keyboard,
                            main_menu_keyboard,
                            settings_toggle_options_keyboard,
                            settings_voice_recognition_keyboard,
+                           view_entries_actions_keyboard,
                            voice_confirmation_keyboard)
 
 
@@ -58,14 +59,26 @@ def test_language_menu_contains_back_button() -> None:
     assert any(text.endswith(tr("en", "menu_back")) for text in texts)
 
 
-def test_export_menu_contains_entry_index_button() -> None:
+def test_export_menu_contains_period_buttons() -> None:
     texts = [
         button.text
         for row in EXPORT_ENTRIES_KEYBOARD.inline_keyboard
         for button in row
     ]
 
-    assert EXPORT_VIEW_BY_INDEX in texts
+    assert tr("ru", "export_week") in texts
+    assert tr("ru", "export_all") in texts
+
+
+def test_view_actions_keyboard_contains_backup_action() -> None:
+    keyboard = view_entries_actions_keyboard("ru")
+    texts = [
+        button.text
+        for row in keyboard.inline_keyboard
+        for button in row
+    ]
+
+    assert tr("ru", "view_backup") in texts
 
 
 def test_toggle_options_keyboard_contains_enable_disable() -> None:
