@@ -66,6 +66,10 @@ def _ensure_sqlite_schema_compatibility(engine) -> None:
                     "VARCHAR(8) NOT NULL DEFAULT 'ru'"
                 )
             )
+        if "display_name" not in user_columns:
+            connection.execute(
+                text("ALTER TABLE users ADD COLUMN display_name VARCHAR(128)")
+            )
         if "enable_menu_icons" not in user_columns:
             connection.execute(
                 text(

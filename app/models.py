@@ -24,6 +24,7 @@ class User(Base):
     telegram_id = Column(Integer, unique=True, nullable=False)
     timezone = Column(String(64), nullable=False)
     language = Column(String(8), nullable=False, default="ru")
+    display_name = Column(String(128))
     enable_menu_icons = Column(Boolean, nullable=False, default=True)
     voice_recognition_mode = Column(
         String(16),

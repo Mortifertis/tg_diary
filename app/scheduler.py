@@ -14,6 +14,7 @@ from app.models import EntryType, User
 from app.prompts import build_prompt
 from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
                            WEEKLY_QUESTIONS, pick_questions)
+from app.services.greetings import build_reminder_greeting
 from app.services.questions import list_active_daily_questions
 from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
                                     due_weekly_reminder)
@@ -68,6 +69,14 @@ def create_scheduler(bot: Bot, storage) -> AsyncIOScheduler:
                         )
                         question = questions[0]
                         question_queue = questions[1:]
+                    greeting_message = build_reminder_greeting(
+                        user,
+                        reminder.due_at,
+                    )
+                    await bot.send_message(
+                        chat_id=user.telegram_id,
+                        text=greeting_message,
+                    )
                     message = build_prompt(reminder.entry_type, question)
                     await bot.send_message(
                         chat_id=user.telegram_id,

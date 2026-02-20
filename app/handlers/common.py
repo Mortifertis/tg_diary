@@ -57,6 +57,17 @@ from app.storage import get_session
 router = Router()
 
 
+def _extract_display_name(message: Message) -> str:
+    from_user = message.from_user
+    if from_user is None:
+        return ""
+    if from_user.full_name:
+        return from_user.full_name.strip()
+    if from_user.username:
+        return from_user.username.strip()
+    return ""
+
+
 def _menu_text(message: Message, key: str) -> bool:
     text = (message.text or "").strip()
     variants = menu_variants(key)
@@ -279,6 +290,7 @@ async def start(message: Message) -> None:
                 telegram_id=message.from_user.id,
                 timezone=config.timezone,
                 language="ru",
+                display_name=_extract_display_name(message),
                 daily_time=config.daily_time_default,
                 weekly_day=config.weekly_day_default,
                 weekly_time=config.weekly_time_default,
@@ -287,6 +299,9 @@ async def start(message: Message) -> None:
                 entries_page_size=5,
             )
             session.add(user)
+            session.commit()
+        elif not user.display_name:
+            user.display_name = _extract_display_name(message)
             session.commit()
         ensure_default_daily_questions(session, user)
     await message.answer(
