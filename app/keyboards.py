@@ -72,6 +72,18 @@ def _reply_keyboard(
     )
 
 
+def _two_columns_with_back(
+    language: str,
+    keys: list[str],
+    use_icons: bool,
+) -> ReplyKeyboardMarkup:
+    rows: list[list[str]] = []
+    for index in range(0, len(keys), 2):
+        rows.append(keys[index:index + 2])
+    rows.append(["menu_back"])
+    return _reply_keyboard(language, rows, use_icons)
+
+
 @dataclass(frozen=True)
 class ToggleOptionMenu:
     setting_key: str
@@ -169,15 +181,9 @@ def view_entries_actions_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
-    return _reply_keyboard(
+    return _two_columns_with_back(
         language,
-        [
-            ["view_find_by_id"],
-            ["view_export"],
-            ["view_import"],
-            ["view_backup"],
-            ["menu_back"],
-        ],
+        ["view_find_by_id", "view_export", "view_import", "view_backup"],
         use_icons,
     )
 
@@ -186,15 +192,14 @@ def export_entries_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
-    return _reply_keyboard(
+    return _two_columns_with_back(
         language,
         [
-            ["export_week"],
-            ["export_month"],
-            ["export_3months"],
-            ["export_year"],
-            ["export_all"],
-            ["menu_back"],
+            "export_week",
+            "export_month",
+            "export_3months",
+            "export_year",
+            "export_all",
         ],
         use_icons,
     )
@@ -223,26 +228,10 @@ def reminder_time_settings_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(
-                    text=_button_text(language, "menu_daily", use_icons),
-                ),
-                KeyboardButton(
-                    text=_button_text(language, "menu_weekly", use_icons),
-                ),
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(language, "menu_monthly", use_icons),
-                ),
-                KeyboardButton(
-                    text=_button_text(language, "menu_back", use_icons),
-                ),
-            ],
-        ],
-        resize_keyboard=True,
+    return _two_columns_with_back(
+        language,
+        ["menu_daily", "menu_weekly", "menu_monthly"],
+        use_icons,
     )
 
 
@@ -282,33 +271,10 @@ def appearance_settings_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_toggle_icons",
-                        use_icons,
-                    ),
-                )
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_voice_recognition",
-                        use_icons,
-                    ),
-                )
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(language, "menu_back", use_icons),
-                )
-            ],
-        ],
-        resize_keyboard=True,
+    return _two_columns_with_back(
+        language,
+        ["settings_toggle_icons", "settings_voice_recognition"],
+        use_icons,
     )
 
 
@@ -323,42 +289,14 @@ def settings_voice_recognition_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_voice_recognition_auto",
-                        use_icons,
-                    ),
-                )
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_voice_recognition_confirm",
-                        use_icons,
-                    ),
-                )
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_voice_recognition_off",
-                        use_icons,
-                    ),
-                )
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(language, "menu_back", use_icons),
-                )
-            ],
+    return _two_columns_with_back(
+        language,
+        [
+            "settings_voice_recognition_auto",
+            "settings_voice_recognition_confirm",
+            "settings_voice_recognition_off",
         ],
-        resize_keyboard=True,
+        use_icons,
     )
 
 
@@ -397,54 +335,16 @@ def questions_settings_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "menu_questions_add",
-                        use_icons,
-                    ),
-                ),
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "menu_questions_delete",
-                        use_icons,
-                    ),
-                ),
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "menu_questions_pause",
-                        use_icons,
-                    ),
-                ),
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "menu_questions_resume",
-                        use_icons,
-                    ),
-                ),
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "menu_questions_reset",
-                        use_icons,
-                    ),
-                ),
-                KeyboardButton(
-                    text=_button_text(language, "menu_back", use_icons),
-                ),
-            ],
+    return _two_columns_with_back(
+        language,
+        [
+            "menu_questions_add",
+            "menu_questions_delete",
+            "menu_questions_pause",
+            "menu_questions_resume",
+            "menu_questions_reset",
         ],
-        resize_keyboard=True,
+        use_icons,
     )
 
 

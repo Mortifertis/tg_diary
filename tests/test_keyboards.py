@@ -108,3 +108,29 @@ def test_voice_confirmation_keyboard_contains_yes_no() -> None:
 
     assert tr("ru", "toggle_yes") in texts
     assert tr("ru", "toggle_no") in texts
+
+
+def test_view_actions_keyboard_has_two_columns_and_back_row() -> None:
+    keyboard = view_entries_actions_keyboard("ru", use_icons=False)
+
+    assert len(keyboard.keyboard[0]) == 2
+    assert len(keyboard.keyboard[1]) == 2
+    assert len(keyboard.keyboard[-1]) == 1
+    assert keyboard.keyboard[-1][0].text == tr("ru", "menu_back")
+
+
+def test_export_keyboard_has_two_columns_and_back_row() -> None:
+    keyboard = EXPORT_ENTRIES_KEYBOARD
+
+    assert len(keyboard.keyboard[0]) == 2
+    assert len(keyboard.keyboard[1]) == 2
+    assert len(keyboard.keyboard[2]) == 1
+    assert len(keyboard.keyboard[-1]) == 1
+    assert keyboard.keyboard[-1][0].text.endswith(tr("ru", "menu_back"))
+
+
+def test_questions_keyboard_has_back_on_separate_row() -> None:
+    last_row = QUESTIONS_SETTINGS_KEYBOARD.keyboard[-1]
+
+    assert len(last_row) == 1
+    assert last_row[0].text.endswith(tr("ru", "menu_back"))
