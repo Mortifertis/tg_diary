@@ -5,12 +5,10 @@ from dataclasses import dataclass
 from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, ReplyKeyboardMarkup)
 
-from app.constants import (EXPORT_INDEX_CALLBACK, MANAGE_DELETE_PREFIX,
-                           MANAGE_EDIT_PREFIX, MANAGE_SHOW_MORE_PREFIX,
-                           MOOD_BAD_LABEL, MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL,
-                           VIEW_ACTION_BACK, VIEW_ACTION_BACKUP,
-                           VIEW_ACTION_CALLBACK_PREFIX, VIEW_ACTION_EXPORT,
-                           VIEW_ACTION_FIND_BY_ID, VIEW_SHOW_MORE_PREFIX)
+from app.constants import (MANAGE_DELETE_PREFIX, MANAGE_EDIT_PREFIX,
+                           MANAGE_SHOW_MORE_PREFIX, MOOD_BAD_LABEL,
+                           MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL,
+                           VIEW_SHOW_MORE_PREFIX)
 from app.i18n import LANGUAGE_FLAGS, tr
 
 MOOD_KEYBOARD = InlineKeyboardMarkup(
@@ -35,6 +33,11 @@ MENU_ICONS = {
     "menu_settings": "⚙️",
     "menu_view": "📚",
     "menu_manage": "🛠️",
+    "view_find_by_id": "🔎",
+    "view_export": "📤",
+    "view_import": "📥",
+    "view_backup": "🗄️",
+    "settings_entries_page_size": "📄",
     "settings_reminder_times": "⏰",
     "menu_questions": "❓",
     "settings_language": "🌐",
@@ -50,6 +53,23 @@ MENU_ICONS = {
     "toggle_disable": "🚫",
     "menu_back": "↩️",
 }
+
+
+def _reply_keyboard(
+    language: str,
+    rows: list[list[str]],
+    use_icons: bool,
+) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=_button_text(language, key, use_icons))
+                for key in row
+            ]
+            for row in rows
+        ],
+        resize_keyboard=True,
+    )
 
 
 @dataclass(frozen=True)
@@ -122,26 +142,10 @@ def main_menu_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(
-                    text=_button_text(language, "menu_create", use_icons),
-                ),
-                KeyboardButton(
-                    text=_button_text(language, "menu_settings", use_icons),
-                ),
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(language, "menu_view", use_icons),
-                ),
-                KeyboardButton(
-                    text=_button_text(language, "menu_manage", use_icons),
-                ),
-            ],
-        ],
-        resize_keyboard=True,
+    return _reply_keyboard(
+        language,
+        [["menu_create", "menu_settings"], ["menu_view", "menu_manage"]],
+        use_icons,
     )
 
 
@@ -149,39 +153,65 @@ def reminder_settings_keyboard(
     language: str,
     use_icons: bool = True,
 ) -> ReplyKeyboardMarkup:
+    return _reply_keyboard(
+        language,
+        [
+            ["settings_reminder_times", "menu_questions"],
+            ["settings_language", "settings_appearance"],
+            ["settings_entries_page_size"],
+            ["menu_back"],
+        ],
+        use_icons,
+    )
+
+
+def view_entries_actions_keyboard(
+    language: str,
+    use_icons: bool = True,
+) -> ReplyKeyboardMarkup:
+    return _reply_keyboard(
+        language,
+        [
+            ["view_find_by_id"],
+            ["view_export"],
+            ["view_import"],
+            ["view_backup"],
+            ["menu_back"],
+        ],
+        use_icons,
+    )
+
+
+def export_entries_keyboard(
+    language: str,
+    use_icons: bool = True,
+) -> ReplyKeyboardMarkup:
+    return _reply_keyboard(
+        language,
+        [
+            ["export_week"],
+            ["export_month"],
+            ["export_3months"],
+            ["export_year"],
+            ["export_all"],
+            ["menu_back"],
+        ],
+        use_icons,
+    )
+
+
+def entries_page_size_keyboard(
+    language: str,
+    use_icons: bool = True,
+) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
+            [KeyboardButton(text="5"), KeyboardButton(text="10")],
+            [KeyboardButton(text="15"), KeyboardButton(text="20")],
+            [KeyboardButton(text="25")],
             [
                 KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_reminder_times",
-                        use_icons,
-                    )
-                ),
-                KeyboardButton(
-                    text=_button_text(language, "menu_questions", use_icons),
-                ),
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_language",
-                        use_icons,
-                    ),
-                ),
-                KeyboardButton(
-                    text=_button_text(
-                        language,
-                        "settings_appearance",
-                        use_icons,
-                    ),
-                ),
-            ],
-            [
-                KeyboardButton(
-                    text=_button_text(language, "menu_back", use_icons),
+                    text=_button_text(language, "menu_back", use_icons)
                 )
             ],
         ],
@@ -418,94 +448,16 @@ def questions_settings_keyboard(
     )
 
 
-def view_entries_actions_keyboard(language: str) -> InlineKeyboardMarkup:
+def view_entries_page_keyboard(
+    language: str,
+    offset: int,
+    page_size: int,
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=tr(language, "view_find_by_id"),
-                    callback_data=(
-                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_FIND_BY_ID}"
-                    ),
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "view_export"),
-                    callback_data=(
-                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_EXPORT}"
-                    ),
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "view_backup"),
-                    callback_data=(
-                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_BACKUP}"
-                    ),
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "view_back"),
-                    callback_data=(
-                        f"{VIEW_ACTION_CALLBACK_PREFIX}{VIEW_ACTION_BACK}"
-                    ),
-                )
-            ],
-        ]
-    )
-
-
-def export_entries_keyboard(language: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "export_week"),
-                    callback_data="export:week",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "export_month"),
-                    callback_data="export:month",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "export_3months"),
-                    callback_data="export:3months",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "export_year"),
-                    callback_data="export:year",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "export_all"),
-                    callback_data="export:all",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "export_back"),
-                    callback_data="export:back",
-                )
-            ],
-        ]
-    )
-
-
-def view_entries_page_keyboard(language: str, offset: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=tr(language, "view_more"),
+                    text=tr(language, "view_more", count=page_size),
                     callback_data=f"{VIEW_SHOW_MORE_PREFIX}{offset}",
                 )
             ]

@@ -8,13 +8,13 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, ForceReply, Message
 
-from app.constants import (DAILY_PROMPT_SUFFIX,
+from app.constants import (BACKUP_MAX_PAGE_SIZE, DAILY_PROMPT_SUFFIX,
                            ENTRY_DETAILS_ATTACHMENTS_HEADER,
                            ENTRY_DETAILS_HEADER_TEMPLATE,
-                           ENTRY_DETAILS_TEXT_TEMPLATE, EXPORT_CALLBACK_PREFIX,
-                           EXPORT_DONE_TEMPLATE, EXPORT_MENU_PROMPT,
-                           EXPORT_NO_ENTRIES, MANAGE_DELETE_PREFIX,
-                           MANAGE_EDIT_PREFIX, MANAGE_ENTRIES_DELETED,
+                           ENTRY_DETAILS_TEXT_TEMPLATE, EXPORT_DONE_TEMPLATE,
+                           EXPORT_MENU_PROMPT, EXPORT_NO_ENTRIES,
+                           MANAGE_DELETE_PREFIX, MANAGE_EDIT_PREFIX,
+                           MANAGE_ENTRIES_DELETED,
                            MANAGE_ENTRIES_PREVIEW_LIMIT,
                            MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT,
                            MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX,
@@ -29,9 +29,7 @@ from app.constants import (DAILY_PROMPT_SUFFIX,
                            STATUS_MONTHLY_TEMPLATE,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE,
-                           VIEW_ACTION_BACK, VIEW_ACTION_BACKUP,
-                           VIEW_ACTION_CALLBACK_PREFIX, VIEW_ACTION_EXPORT,
-                           VIEW_ACTION_FIND_BY_ID, VIEW_SHOW_MORE_PREFIX)
+                           VIEW_SHOW_MORE_PREFIX)
 from app.i18n import menu_variants, tr
 from app.keyboards import (MOOD_KEYBOARD, export_entries_keyboard,
                            main_menu_keyboard, manage_entries_actions_keyboard,
@@ -41,7 +39,8 @@ from app.keyboards import (MOOD_KEYBOARD, export_entries_keyboard,
                            view_entries_page_keyboard)
 from app.models import Entry, EntryType, User
 from app.questions import DAILY_QUESTIONS, pick_question
-from app.services.backup import build_user_backup_archive
+from app.services.backup import (build_user_backup_archive,
+                                 import_user_backup_archive)
 from app.services.entries import (count_entries, delete_entry_by_index,
                                   format_entries_export, get_entry_by_index,
                                   list_entries, mood_breakdown,
@@ -76,6 +75,10 @@ async def _handle_menu_interrupt(message: Message, state: FSMContext) -> bool:
         ("menu_create", lambda: create_entry_from_menu(message, state)),
         ("menu_settings", lambda: reminder_settings_menu(message)),
         ("menu_view", lambda: view_entries(message)),
+        ("view_find_by_id", lambda: prompt_find_entry_by_id(message, state)),
+        ("view_export", lambda: export_menu_with_state(message, state)),
+        ("view_import", lambda: import_menu(message, state)),
+        ("view_backup", lambda: send_backup(message)),
         ("menu_manage", lambda: manage_entries(message, state)),
         ("menu_back", lambda: back_to_main_menu(message, state)),
         (
@@ -104,6 +107,13 @@ async def _handle_menu_interrupt(message: Message, state: FSMContext) -> bool:
         (
             "settings_appearance",
             lambda: settings_handlers.appearance_menu(message, state),
+        ),
+        (
+            "settings_entries_page_size",
+            lambda: settings_handlers.set_entries_page_size_menu(
+                message,
+                state,
+            ),
         ),
         (
             "settings_toggle_icons",
@@ -217,6 +227,13 @@ def _format_manage_entries_preview(entries: list[Entry], language: str) -> str:
     return "\n\n".join(lines)
 
 
+def _entries_page_size(user: User) -> int:
+    value = int(user.entries_page_size or 5)
+    if value < 1:
+        return 1
+    return min(value, BACKUP_MAX_PAGE_SIZE)
+
+
 async def _send_entry_details(
     message: Message,
     user: User,
@@ -267,6 +284,7 @@ async def start(message: Message) -> None:
                 weekly_time=config.weekly_time_default,
                 monthly_day=config.monthly_day_default,
                 monthly_time=config.monthly_time_default,
+                entries_page_size=5,
             )
             session.add(user)
             session.commit()
@@ -423,6 +441,10 @@ async def back_to_main_menu(message: Message, state: FSMContext) -> None:
         SettingsState.waiting_delete_daily_question_id.state,
         SettingsState.waiting_pause_daily_question_id.state,
         SettingsState.waiting_resume_daily_question_id.state,
+        SettingsState.waiting_daily_questions_count.state,
+        SettingsState.waiting_entries_page_size.state,
+        SettingsState.in_daily_questions_settings.state,
+        SettingsState.in_reminder_times_settings.state,
         SettingsState.in_questions_menu.state,
         SettingsState.in_appearance_settings.state,
         SettingsState.waiting_toggle_icons_value.state,
@@ -433,9 +455,9 @@ async def back_to_main_menu(message: Message, state: FSMContext) -> None:
         await message.answer(
             tr(language, "settings_menu"),
             reply_markup=reminder_settings_keyboard(
-            language,
-            bool(user.enable_menu_icons) if user else True,
-        ),
+                language,
+                bool(user.enable_menu_icons) if user else True,
+            ),
         )
         return
 
@@ -468,18 +490,26 @@ async def view_entries(message: Message) -> None:
         )
         return
 
-    first_page = entries[:5]
+    page_size = _entries_page_size(user)
+    first_page = entries[:page_size]
     await message.answer(_format_recent_entries(first_page, user))
 
-    if len(entries) > 5:
+    if len(entries) > page_size:
         await message.answer(
             tr(user.language, "view_prompt"),
-            reply_markup=view_entries_page_keyboard(user.language, 5),
+            reply_markup=view_entries_page_keyboard(
+                user.language,
+                page_size,
+                page_size,
+            ),
         )
 
     await message.answer(
         tr(user.language, "view_prompt"),
-        reply_markup=view_entries_actions_keyboard(user.language),
+        reply_markup=view_entries_actions_keyboard(
+            user.language,
+            bool(user.enable_menu_icons),
+        ),
     )
 
 
@@ -504,85 +534,196 @@ async def show_more_view_entries(callback: CallbackQuery) -> None:
             return
         entries = list_entries(session, user, limit=None)
 
-    page = entries[offset:offset + 5]
+    page_size = _entries_page_size(user)
+    page = entries[offset:offset + page_size]
     if not page:
         await callback.answer()
         return
 
     if callback.message:
         await callback.message.answer(_format_recent_entries(page, user))
-        next_offset = offset + 5
+        next_offset = offset + page_size
         if next_offset < len(entries):
             await callback.message.answer(
                 tr(user.language, "view_prompt"),
                 reply_markup=view_entries_page_keyboard(
                     user.language,
                     next_offset,
+                    page_size,
                 ),
             )
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith(VIEW_ACTION_CALLBACK_PREFIX))
-async def view_entries_action(callback: CallbackQuery, state: FSMContext) -> None:
-    if not callback.data:
-        await callback.answer()
-        return
+@router.message(lambda message: _menu_text(message, "view_find_by_id"))
+async def prompt_find_entry_by_id(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    await state.set_state(EntryState.waiting_entry_index)
+    await message.answer(tr(language, "entry_index_prompt"))
 
-    action = callback.data.replace(VIEW_ACTION_CALLBACK_PREFIX, "", 1)
-    with get_session(callback.bot) as session:
-        user = get_user_by_telegram_id(session, callback.from_user.id)
+
+@router.message(lambda message: _menu_text(message, "view_backup"))
+async def send_backup(message: Message) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
-            if callback.message:
-                await callback.message.answer(NEED_START_MESSAGE)
-            await callback.answer()
+            await message.answer(NEED_START_MESSAGE)
+            return
+        entries = list_entries(session, user, limit=None)
+        questions = list_daily_questions(session, user)
+        backup_bytes = build_user_backup_archive(user, entries, questions)
+        backup_file = BufferedInputFile(
+            backup_bytes,
+            filename=f"backup_{user.telegram_id}.zip",
+        )
+    await message.answer_document(
+        backup_file,
+        caption=tr(user.language, "view_backup"),
+    )
+
+
+async def _show_export_menu(message: Message) -> None:
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
+    await message.answer(
+        EXPORT_MENU_PROMPT,
+        reply_markup=export_entries_keyboard(language, use_icons),
+    )
+
+
+def _resolve_export_period(message: Message) -> str | None:
+    mapping = {
+        "export_week": "week",
+        "export_month": "month",
+        "export_3months": "3months",
+        "export_year": "year",
+        "export_all": "all",
+    }
+    for key, value in mapping.items():
+        if _menu_text(message, key):
+            return value
+    return None
+
+
+@router.message(lambda message: _menu_text(message, "view_export"))
+async def export_menu_with_state(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    await state.set_state(EntryState.waiting_export_period)
+    await _show_export_menu(message)
+
+
+@router.message(EntryState.waiting_export_period)
+async def export_entries_from_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    if _menu_text(message, "menu_back"):
+        await state.clear()
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        use_icons = bool(user.enable_menu_icons) if user else True
+        await message.answer(
+            tr(language, "view_prompt"),
+            reply_markup=view_entries_actions_keyboard(language, use_icons),
+        )
+        return
+
+    period = _resolve_export_period(message)
+    if not period:
+        await _show_export_menu(message)
+        return
+
+    await state.clear()
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        local_today = local_date_for_user(user)
+        created_from_date = resolve_export_start_date(period, local_today)
+        created_from = None
+        if created_from_date is not None:
+            created_from = local_day_start_to_utc_naive(
+                user,
+                created_from_date,
+            )
+        entries = list_entries(
+            session,
+            user,
+            limit=None,
+            created_from=created_from,
+        )
+
+    period_label = _resolve_period_label(period, user.language)
+    if period_label is None:
+        return
+
+    if not entries:
+        await message.answer(EXPORT_NO_ENTRIES)
+        return
+
+    export_text = format_entries_export(entries)
+    export_file = BufferedInputFile(
+        export_text.encode("utf-8"),
+        filename=f"entries_{period}.txt",
+    )
+    await message.answer_document(
+        export_file,
+        caption=EXPORT_DONE_TEMPLATE.format(period_label=period_label),
+    )
+
+
+@router.message(lambda message: _menu_text(message, "view_import"))
+async def import_menu(message: Message, state: FSMContext) -> None:
+    await state.set_state(EntryState.waiting_import_archive)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    await message.answer(tr(language, "import_prompt"))
+
+
+@router.message(EntryState.waiting_import_archive)
+async def import_archive(message: Message, state: FSMContext) -> None:
+    if await _handle_menu_interrupt(message, state):
+        return
+
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+
+    if not message.document:
+        await message.answer(tr(language, "import_no_document"))
+        return
+
+    archive_bytes = await message.bot.download(message.document)
+    if archive_bytes is None:
+        await message.answer(tr(language, "import_invalid_archive"))
+        return
+
+    payload = archive_bytes.read()
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        try:
+            import_user_backup_archive(user, payload)
+        except (KeyError, OSError, ValueError):
+            await message.answer(tr(user.language, "import_invalid_archive"))
             return
 
-        if action == VIEW_ACTION_BACKUP:
-            entries = list_entries(session, user, limit=None)
-            questions = list_daily_questions(session, user)
-            backup_bytes = build_user_backup_archive(user, entries, questions)
-            backup_file = BufferedInputFile(
-                backup_bytes,
-                filename=f"backup_{user.telegram_id}.zip",
-            )
-            if callback.message:
-                await callback.message.answer_document(
-                    backup_file,
-                    caption=tr(user.language, "view_backup"),
-                )
-            await callback.answer()
-            return
-
-    if action == VIEW_ACTION_FIND_BY_ID:
-        await state.set_state(EntryState.waiting_entry_index)
-        if callback.message:
-            await callback.message.answer(tr(user.language, "entry_index_prompt"))
-        await callback.answer()
-        return
-
-    if action == VIEW_ACTION_EXPORT:
-        if callback.message:
-            await callback.message.answer(
-                EXPORT_MENU_PROMPT,
-                reply_markup=export_entries_keyboard(user.language),
-            )
-        await callback.answer()
-        return
-
-    if action == VIEW_ACTION_BACK:
-        if callback.message:
-            await callback.message.answer(
-                tr(user.language, "main_menu_opened"),
-                reply_markup=main_menu_keyboard(
-                    user.language,
-                    bool(user.enable_menu_icons),
-                ),
-            )
-        await callback.answer()
-        return
-
-    await callback.answer()
+    await state.clear()
+    await message.answer(tr(user.language, "import_done_message"))
 
 
 @router.message(lambda message: _menu_text(message, "menu_manage"))
@@ -682,66 +823,6 @@ def _resolve_period_label(period: str, language: str) -> str | None:
         "all": tr(language, "export_all"),
     }
     return period_labels.get(period)
-
-
-@router.callback_query(F.data.startswith(EXPORT_CALLBACK_PREFIX))
-async def export_entries(callback: CallbackQuery) -> None:
-    if not callback.data:
-        await callback.answer()
-        return
-    period = callback.data.split(":", maxsplit=1)[1]
-    if period == "back":
-        language = "ru"
-        with get_session(callback.bot) as session:
-            user = get_user_by_telegram_id(session, callback.from_user.id)
-        if user:
-            language = user.language
-        await callback.answer()
-        if callback.message:
-            await callback.message.answer(
-                tr(language, "view_prompt"),
-                reply_markup=view_entries_actions_keyboard(language),
-            )
-        return
-    with get_session(callback.bot) as session:
-        user = get_user_by_telegram_id(session, callback.from_user.id)
-        if not user:
-            if callback.message:
-                await callback.message.answer(NEED_START_MESSAGE)
-            await callback.answer()
-            return
-        local_today = local_date_for_user(user)
-        created_from_date = resolve_export_start_date(period, local_today)
-        created_from = None
-        if created_from_date is not None:
-            created_from = local_day_start_to_utc_naive(
-                user, created_from_date
-            )
-        entries = list_entries(
-            session, user, limit=None, created_from=created_from
-        )
-
-    period_label = _resolve_period_label(period, user.language)
-    if period_label is None:
-        await callback.answer()
-        return
-
-    await callback.answer()
-    if not entries:
-        if callback.message:
-            await callback.message.answer(EXPORT_NO_ENTRIES)
-        return
-
-    export_text = format_entries_export(entries)
-    export_bytes = export_text.encode("utf-8")
-    export_file = BufferedInputFile(
-        export_bytes, filename=f"entries_{period}.txt"
-    )
-    if callback.message:
-        await callback.message.answer_document(
-            export_file,
-            caption=EXPORT_DONE_TEMPLATE.format(period_label=period_label),
-        )
 
 
 @router.message(EntryState.waiting_entry_index)

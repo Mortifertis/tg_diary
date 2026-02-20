@@ -5,7 +5,8 @@ from app.constants import (MENU_CREATE_ENTRY, MENU_MANAGE_ENTRIES,
                            MENU_VIEW_ENTRIES)
 from app.i18n import tr
 from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
-                           QUESTIONS_SETTINGS_KEYBOARD, language_keyboard,
+                           QUESTIONS_SETTINGS_KEYBOARD,
+                           entries_page_size_keyboard, language_keyboard,
                            main_menu_keyboard,
                            settings_toggle_options_keyboard,
                            settings_voice_recognition_keyboard,
@@ -62,7 +63,7 @@ def test_language_menu_contains_back_button() -> None:
 def test_export_menu_contains_period_buttons() -> None:
     texts = [
         button.text
-        for row in EXPORT_ENTRIES_KEYBOARD.inline_keyboard
+        for row in EXPORT_ENTRIES_KEYBOARD.keyboard
         for button in row
     ]
 
@@ -72,13 +73,16 @@ def test_export_menu_contains_period_buttons() -> None:
 
 def test_view_actions_keyboard_contains_backup_action() -> None:
     keyboard = view_entries_actions_keyboard("ru")
-    texts = [
-        button.text
-        for row in keyboard.inline_keyboard
-        for button in row
-    ]
+    texts = [button.text for row in keyboard.keyboard for button in row]
 
-    assert tr("ru", "view_backup") in texts
+    assert any(text.endswith(tr("ru", "view_backup")) for text in texts)
+
+
+def test_entries_page_size_keyboard_contains_limit() -> None:
+    keyboard = entries_page_size_keyboard("ru", use_icons=False)
+    texts = [button.text for row in keyboard.keyboard for button in row]
+
+    assert "25" in texts
 
 
 def test_toggle_options_keyboard_contains_enable_disable() -> None:

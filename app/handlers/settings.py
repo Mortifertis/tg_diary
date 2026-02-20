@@ -9,10 +9,8 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
-                           MENU_DAILY_QUESTIONS, MENU_MONTHLY, MENU_PAUSE,
-                           MENU_RESUME, MENU_WEEKLY,
-                           MONTHLY_TIME_UPDATED_TEMPLATE,
+from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_PAUSE,
+                           MENU_RESUME, MONTHLY_TIME_UPDATED_TEMPLATE,
                            MONTHLY_USAGE_MESSAGE, NEED_START_MESSAGE,
                            PAUSE_DISABLED_MESSAGE, PAUSE_ENABLED_TEMPLATE,
                            QUESTIONS_ADD_PROMPT, QUESTIONS_ADDED_MESSAGE,
@@ -22,17 +20,19 @@ from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_DAILY,
                            QUESTIONS_EMPTY_TEXT_MESSAGE,
                            QUESTIONS_INVALID_ID_MESSAGE, QUESTIONS_LIST_HEADER,
                            QUESTIONS_NOT_FOUND_MESSAGE, QUESTIONS_PAUSE_PROMPT,
-                           QUESTIONS_PAUSED_MESSAGE, QUESTIONS_RESUME_PROMPT,
-                           QUESTIONS_RESUMED_MESSAGE, QUESTIONS_STATUS_ACTIVE,
-                           QUESTIONS_STATUS_PAUSED, SETTINGS_DAILY_PROMPT,
-                           SETTINGS_MONTHLY_PROMPT,
+                           QUESTIONS_PAUSED_MESSAGE,
+                           QUESTIONS_RESET_DEFAULTS_MESSAGE,
+                           QUESTIONS_RESUME_PROMPT, QUESTIONS_RESUMED_MESSAGE,
+                           QUESTIONS_STATUS_ACTIVE, QUESTIONS_STATUS_PAUSED,
+                           SETTINGS_DAILY_PROMPT, SETTINGS_MONTHLY_PROMPT,
                            SETTINGS_QUESTIONS_MENU_MESSAGE,
                            SETTINGS_WEEKLY_PROMPT, TIME_USAGE_MESSAGE,
                            WEEKLY_TIME_UPDATED_TEMPLATE, WEEKLY_USAGE_MESSAGE)
 from app.i18n import LANGUAGE_FLAGS, menu_variants, tr
 from app.keyboards import (appearance_settings_keyboard,
                            daily_questions_settings_keyboard,
-                           language_keyboard, questions_settings_keyboard,
+                           entries_page_size_keyboard, language_keyboard,
+                           questions_settings_keyboard,
                            reminder_time_settings_keyboard,
                            settings_toggle_options_keyboard,
                            settings_voice_recognition_keyboard)
@@ -279,6 +279,24 @@ async def set_daily_questions_count_menu(
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     await message.answer(tr(language, "settings_questions_count_prompt"))
+
+
+@router.message(
+    lambda message: _menu_text(message, "settings_entries_page_size")
+)
+async def set_entries_page_size_menu(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    await state.set_state(SettingsState.waiting_entries_page_size)
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+    language = user.language if user else "ru"
+    use_icons = bool(user.enable_menu_icons) if user else True
+    await message.answer(
+        tr(language, "settings_entries_page_size_prompt"),
+        reply_markup=entries_page_size_keyboard(language, use_icons),
+    )
 
 
 @router.message(lambda message: _menu_text(message, "settings_reminder_times"))
@@ -547,6 +565,45 @@ async def save_daily_questions_count(
     await state.clear()
     await message.answer(
         tr(language, "settings_questions_count_updated", count=count)
+    )
+
+
+@router.message(SettingsState.waiting_entries_page_size)
+async def save_entries_page_size(
+    message: Message,
+    state: FSMContext,
+) -> None:
+    value = (message.text or "").strip()
+    if not value.isdigit():
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        await message.answer(
+            tr(language, "settings_entries_page_size_invalid")
+        )
+        return
+
+    count = int(value)
+    if count < 1 or count > 25:
+        with get_session(message.bot) as session:
+            user = get_user_by_telegram_id(session, message.from_user.id)
+        language = user.language if user else "ru"
+        await message.answer(
+            tr(language, "settings_entries_page_size_invalid")
+        )
+        return
+
+    with get_session(message.bot) as session:
+        user = get_user_by_telegram_id(session, message.from_user.id)
+        if not user:
+            await message.answer(NEED_START_MESSAGE)
+            return
+        user.entries_page_size = count
+        language = user.language
+
+    await state.clear()
+    await message.answer(
+        tr(language, "settings_entries_page_size_updated", count=count)
     )
 
 

@@ -6,7 +6,20 @@ from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from app.constants import BACKUP_SCHEMA_VERSION
-from app.models import Entry, User, UserQuestion
+from app.models import (AttachmentType, Entry, EntryAttachment, EntryType,
+                        User, UserQuestion)
+
+
+def _parse_iso_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    return date.fromisoformat(value)
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(value)
 
 
 def _serialize_date(value: date | None) -> str | None:
@@ -32,6 +45,7 @@ def build_user_backup_archive(
         "enable_menu_icons": bool(user.enable_menu_icons),
         "voice_recognition_mode": user.voice_recognition_mode,
         "daily_questions_count": user.daily_questions_count,
+        "entries_page_size": user.entries_page_size,
         "daily_time": user.daily_time,
         "weekly_day": user.weekly_day,
         "weekly_time": user.weekly_time,
@@ -116,3 +130,77 @@ def build_user_backup_archive(
         )
 
     return zip_buffer.getvalue()
+
+
+def import_user_backup_archive(user: User, archive_bytes: bytes) -> None:
+    with ZipFile(BytesIO(archive_bytes)) as zip_file:
+        schema_version = zip_file.read("schema_version.txt").decode().strip()
+        if schema_version != BACKUP_SCHEMA_VERSION:
+            raise ValueError("unsupported_schema_version")
+
+        settings_payload = json.loads(zip_file.read("settings.json"))
+        db_payload = json.loads(zip_file.read("database.json"))
+
+    user.timezone = settings_payload["timezone"]
+    user.language = settings_payload["language"]
+    user.enable_menu_icons = bool(settings_payload["enable_menu_icons"])
+    user.voice_recognition_mode = settings_payload["voice_recognition_mode"]
+    user.daily_questions_count = int(settings_payload["daily_questions_count"])
+    user.entries_page_size = int(settings_payload.get("entries_page_size", 5))
+    user.daily_time = settings_payload["daily_time"]
+    user.weekly_day = int(settings_payload["weekly_day"])
+    user.weekly_time = settings_payload["weekly_time"]
+    user.monthly_day = int(settings_payload["monthly_day"])
+    user.monthly_time = settings_payload["monthly_time"]
+    user.streak = int(settings_payload.get("streak", 0))
+    user.last_entry_date = _parse_iso_date(
+        settings_payload.get("last_entry_date")
+    )
+    user.pause_until = _parse_iso_date(settings_payload.get("pause_until"))
+    user.daily_reminder_date = _parse_iso_date(
+        settings_payload.get("daily_reminder_date")
+    )
+    user.daily_reminder_stage = int(
+        settings_payload.get("daily_reminder_stage", 0)
+    )
+
+    user.entries.clear()
+    user.questions.clear()
+
+    for entry_item in db_payload.get("entries", []):
+        entry = Entry(
+            user=user,
+            entry_index=entry_item["entry_index"],
+            entry_type=EntryType(entry_item["entry_type"]),
+            entry_date=date.fromisoformat(entry_item["entry_date"]),
+            question=entry_item.get("question"),
+            text=entry_item["text"],
+            mood=entry_item.get("mood"),
+            created_at=_parse_iso_datetime(entry_item.get("created_at")),
+        )
+        for attachment_item in entry_item.get("attachments", []):
+            entry.attachments.append(
+                EntryAttachment(
+                    attachment_type=AttachmentType(
+                        attachment_item["attachment_type"]
+                    ),
+                    file_id=attachment_item["file_id"],
+                    file_name=attachment_item["file_name"],
+                    extension=attachment_item["extension"],
+                    created_at=_parse_iso_datetime(
+                        attachment_item.get("created_at")
+                    ),
+                )
+            )
+        user.entries.append(entry)
+
+    for question_item in db_payload.get("questions", []):
+        question = UserQuestion(
+            user=user,
+            entry_type=EntryType(question_item["entry_type"]),
+            text=question_item["text"],
+            is_active=bool(question_item.get("is_active", True)),
+            is_default=bool(question_item.get("is_default", False)),
+            created_at=_parse_iso_datetime(question_item.get("created_at")),
+        )
+        user.questions.append(question)

@@ -80,6 +80,13 @@ def _ensure_sqlite_schema_compatibility(engine) -> None:
                     "INTEGER NOT NULL DEFAULT 3"
                 )
             )
+        if "entries_page_size" not in user_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN entries_page_size "
+                    "INTEGER NOT NULL DEFAULT 5"
+                )
+            )
         if "voice_recognition_mode" not in user_columns:
             connection.execute(
                 text(

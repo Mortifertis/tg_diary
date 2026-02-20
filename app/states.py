@@ -7,6 +7,8 @@ class EntryState(StatesGroup):
     waiting_manage_entry_index = State()
     waiting_manage_entry_edit_text = State()
     waiting_voice_recognition_confirmation = State()
+    waiting_import_archive = State()
+    waiting_export_period = State()
 
 
 class SettingsState(StatesGroup):
@@ -18,6 +20,7 @@ class SettingsState(StatesGroup):
     waiting_pause_daily_question_id = State()
     waiting_resume_daily_question_id = State()
     waiting_daily_questions_count = State()
+    waiting_entries_page_size = State()
     waiting_language = State()
     waiting_toggle_icons_value = State()
     waiting_voice_recognition_mode = State()

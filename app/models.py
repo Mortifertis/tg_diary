@@ -30,6 +30,7 @@ class User(Base):
         nullable=False,
         default="auto",
     )
+    entries_page_size = Column(Integer, nullable=False, default=5)
     daily_questions_count = Column(Integer, nullable=False, default=3)
     daily_time = Column(String(5), nullable=False)
     weekly_day = Column(Integer, nullable=False)

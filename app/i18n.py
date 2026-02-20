@@ -36,10 +36,11 @@ TEXTS = {
         "recent_entries_header": "Последние записи:",
         "view_find_by_id": "Найти запись по ID",
         "view_export": "Экспорт",
+        "view_import": "Импорт",
         "view_backup": "Бэкап",
         "view_back": "Назад",
         "view_prompt": "Выберите действие:",
-        "view_more": "Смотреть следующие 5 записей",
+        "view_more": "Смотреть следующие {count} записей",
         "manage_entries_header": "Последние записи (предпросмотр):",
         "manage_entries_prompt": "Введите индекс записи, которую хотите редактировать или удалить (например, d1).",
         "manage_entries_empty": "У вас пока нет записей для редактирования.",
@@ -90,10 +91,24 @@ TEXTS = {
         "menu_questions_count": "Количество вопросов",
         "settings_questions_menu": "Настройки ежедневных вопросов:",
         "settings_questions_count_prompt": "Введите количество вопросов (1-10):",
+        "settings_entries_page_size": "Записей на страницу",
+        "settings_entries_page_size_prompt": (
+            "Выберите число записей на страницу (1-25):"
+        ),
+        "settings_entries_page_size_invalid": (
+            "Введите число от 1 до 25."
+        ),
+        "settings_entries_page_size_updated": (
+            "Показываю по {count} записей на страницу."
+        ),
         "settings_questions_count_updated": "Количество вопросов обновлено: {count}.",
         "settings_questions_count_invalid": "Введите число от 1 до 10.",
         "settings_reminder_times_menu": "Настройка времени напоминаний:",
         "export_menu_prompt": "Выберите период для выгрузки архива:",
+        "import_prompt": "Отправьте ZIP-файл бэкапа для импорта.",
+        "import_invalid_archive": "Не удалось прочитать архив бэкапа.",
+        "import_done_message": "Импорт завершён.",
+        "import_no_document": "Нужен ZIP-файл в формате документа.",
         "settings_daily_prompt": "Введите ежедневное время в формате HH:MM",
     },
     "en": {
@@ -119,10 +134,11 @@ TEXTS = {
         "recent_entries_header": "Recent entries:",
         "view_find_by_id": "Find entry by ID",
         "view_export": "Export",
+        "view_import": "Import",
         "view_backup": "Backup",
         "view_back": "Back",
         "view_prompt": "Choose an action:",
-        "view_more": "Show next 5 entries",
+        "view_more": "Show next {count} entries",
         "manage_entries_header": "Latest entries (preview):",
         "manage_entries_prompt": "Enter the entry index you want to edit or delete (for example, d1).",
         "manage_entries_empty": "You have no entries to edit yet.",
@@ -173,10 +189,22 @@ TEXTS = {
         "menu_questions_count": "Questions count",
         "settings_questions_menu": "Daily questions settings:",
         "settings_questions_count_prompt": "Enter the number of questions (1-10):",
+        "settings_entries_page_size": "Entries per page",
+        "settings_entries_page_size_prompt": (
+            "Choose entries per page (1-25):"
+        ),
+        "settings_entries_page_size_invalid": "Enter a number from 1 to 25.",
+        "settings_entries_page_size_updated": (
+            "Now showing {count} entries per page."
+        ),
         "settings_questions_count_updated": "Questions count updated: {count}.",
         "settings_questions_count_invalid": "Enter a number from 1 to 10.",
         "settings_reminder_times_menu": "Configure reminder times:",
         "export_menu_prompt": "Choose a period for archive export:",
+        "import_prompt": "Send a backup ZIP file to import.",
+        "import_invalid_archive": "Could not read the backup archive.",
+        "import_done_message": "Import completed.",
+        "import_no_document": "Please send a ZIP document file.",
         "settings_daily_prompt": "Enter daily time in HH:MM format",
     },
     "fr": {
@@ -202,10 +230,11 @@ TEXTS = {
         "recent_entries_header": "Dernières entrées :",
         "view_find_by_id": "Trouver une entrée par ID",
         "view_export": "Exporter",
+        "view_import": "Importer",
         "view_backup": "Sauvegarde",
         "view_back": "Retour",
         "view_prompt": "Choisissez une action :",
-        "view_more": "Afficher les 5 entrées suivantes",
+        "view_more": "Afficher les {count} entrées suivantes",
         "manage_entries_header": "Dernières entrées (aperçu) :",
         "manage_entries_prompt": "Entrez l'index de l'entrée à modifier ou supprimer (par exemple, d1).",
         "manage_entries_empty": "Vous n'avez pas encore d'entrées à modifier.",
@@ -254,10 +283,24 @@ TEXTS = {
         "menu_questions_count": "Nombre de questions",
         "settings_questions_menu": "Paramètres des questions quotidiennes :",
         "settings_questions_count_prompt": "Entrez le nombre de questions (1-10) :",
+        "settings_entries_page_size": "Entrées par page",
+        "settings_entries_page_size_prompt": (
+            "Choisissez le nombre d’entrées par page (1-25) :"
+        ),
+        "settings_entries_page_size_invalid": (
+            "Entrez un nombre de 1 à 25."
+        ),
+        "settings_entries_page_size_updated": (
+            "Affichage de {count} entrées par page."
+        ),
         "settings_questions_count_updated": "Nombre de questions mis à jour : {count}.",
         "settings_questions_count_invalid": "Entrez un nombre entre 1 et 10.",
         "settings_reminder_times_menu": "Configurer les heures des rappels :",
         "export_menu_prompt": "Choisissez une période pour exporter l’archive :",
+        "import_prompt": "Envoyez un fichier ZIP de sauvegarde à importer.",
+        "import_invalid_archive": "Impossible de lire l’archive.",
+        "import_done_message": "Import terminé.",
+        "import_no_document": "Envoyez un document ZIP.",
         "settings_daily_prompt": "Entrez l'heure quotidienne au format HH:MM",
     },
     "de": {
@@ -283,10 +326,11 @@ TEXTS = {
         "recent_entries_header": "Letzte Einträge:",
         "view_find_by_id": "Eintrag per ID finden",
         "view_export": "Export",
+        "view_import": "Import",
         "view_backup": "Backup",
         "view_back": "Zurück",
         "view_prompt": "Wähle eine Aktion:",
-        "view_more": "Nächste 5 Einträge anzeigen",
+        "view_more": "Nächste {count} Einträge anzeigen",
         "manage_entries_header": "Letzte Einträge (Vorschau):",
         "manage_entries_prompt": "Gib den Index des Eintrags ein, den du bearbeiten oder löschen möchtest (z. B. d1).",
         "manage_entries_empty": "Du hast noch keine Einträge zum Bearbeiten.",
@@ -335,10 +379,24 @@ TEXTS = {
         "menu_questions_count": "Anzahl Fragen",
         "settings_questions_menu": "Einstellungen für tägliche Fragen:",
         "settings_questions_count_prompt": "Gib die Anzahl der Fragen ein (1-10):",
+        "settings_entries_page_size": "Einträge pro Seite",
+        "settings_entries_page_size_prompt": (
+            "Wähle die Anzahl der Einträge pro Seite (1-25):"
+        ),
+        "settings_entries_page_size_invalid": (
+            "Gib eine Zahl von 1 bis 25 ein."
+        ),
+        "settings_entries_page_size_updated": (
+            "Es werden jetzt {count} Einträge pro Seite angezeigt."
+        ),
         "settings_questions_count_updated": "Anzahl Fragen aktualisiert: {count}.",
         "settings_questions_count_invalid": "Gib eine Zahl von 1 bis 10 ein.",
         "settings_reminder_times_menu": "Erinnerungszeiten konfigurieren:",
         "export_menu_prompt": "Wähle einen Zeitraum für den Archivexport:",
+        "import_prompt": "Sende eine Backup-ZIP-Datei zum Import.",
+        "import_invalid_archive": "Backup-Archiv konnte nicht gelesen werden.",
+        "import_done_message": "Import abgeschlossen.",
+        "import_no_document": "Bitte eine ZIP-Datei als Dokument senden.",
         "settings_daily_prompt": "Gib die tägliche Zeit im Format HH:MM ein",
     },
 }

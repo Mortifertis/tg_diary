@@ -6,7 +6,8 @@ from io import BytesIO
 from zipfile import ZipFile
 
 from app.models import EntryType
-from app.services.backup import build_user_backup_archive
+from app.services.backup import (build_user_backup_archive,
+                                 import_user_backup_archive)
 from app.services.entries import create_entry
 from app.services.questions import list_daily_questions
 
@@ -48,3 +49,31 @@ def test_build_user_backup_archive_contains_required_files(session, user):
 
         settings_payload = json.loads(zip_file.read("settings.json"))
         assert settings_payload["timezone"] == user.timezone
+
+
+def test_import_user_backup_archive_restores_data(session, user):
+    create_entry(
+        session=session,
+        user=user,
+        entry_type=EntryType.user,
+        entry_date=date(2024, 2, 2),
+        text="Исходная запись",
+        mood=None,
+        question=None,
+    )
+    session.commit()
+
+    questions = list_daily_questions(session, user)
+    archive = build_user_backup_archive(user, list(user.entries), questions)
+
+    user.language = "en"
+    user.entries.clear()
+    user.questions.clear()
+    session.commit()
+
+    import_user_backup_archive(user, archive)
+    session.commit()
+
+    assert user.language == "ru"
+    assert len(user.entries) == 1
+    assert user.entries[0].text == "Исходная запись"
