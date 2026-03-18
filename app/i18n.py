@@ -14,8 +14,10 @@ LANGUAGE_FLAGS = {
 
 TEXTS = {
     "ru": {
-        "start": "Я дневник-бот. Буду писать первым и просить короткие заметки.\n"
-        "Теперь можно пользоваться меню кнопок ниже.",
+        "start": (
+            "Я дневник-бот. Буду писать первым и просить короткие "
+            "заметки.\nТеперь можно пользоваться меню кнопок ниже."
+        ),
         "need_start": "Сначала напишите /start.",
         "settings_menu": "Выберите, что настроить:",
         "settings_language": "Язык",
@@ -42,7 +44,10 @@ TEXTS = {
         "view_prompt": "Выберите действие:",
         "view_more": "Смотреть следующие {count} записей",
         "manage_entries_header": "Последние записи (предпросмотр):",
-        "manage_entries_prompt": "Введите индекс записи, которую хотите редактировать или удалить (например, d1).",
+        "manage_entries_prompt": (
+            "Введите индекс записи, которую хотите редактировать или "
+            "удалить (например, d1)."
+        ),
         "manage_entries_empty": "У вас пока нет записей для редактирования.",
         "manage_entries_more": "Показать ещё",
         "manage_entries_page_end": "Больше записей нет.",
@@ -75,22 +80,36 @@ TEXTS = {
         "toggle_no": "Нет",
         "settings_icons_enabled": "Фавиконки в меню: включены.",
         "settings_icons_disabled": "Фавиконки в меню: выключены.",
-        "settings_voice_recognition_prompt": "Выберите режим распознавания голосовых:",
+        "settings_voice_recognition_prompt": (
+            "Выберите режим распознавания голосовых:"
+        ),
         "settings_voice_recognition_auto": "Автоматическое распознавание",
         "settings_voice_recognition_confirm": "После подтверждения",
         "settings_voice_recognition_off": "Отключено",
-        "settings_voice_recognition_mode_auto": "Распознавание: автоматически.",
-        "settings_voice_recognition_mode_confirm": "Распознавание: после подтверждения.",
+        "settings_voice_recognition_mode_auto": (
+            "Распознавание: автоматически."
+        ),
+        "settings_voice_recognition_mode_confirm": (
+            "Распознавание: после подтверждения."
+        ),
         "settings_voice_recognition_mode_off": "Распознавание: отключено.",
-        "voice_convert_confirmation": "Вы записали голосовое сообщение, хотите конвертировать его в текст?",
+        "voice_convert_confirmation": (
+            "Вы записали голосовое сообщение, хотите конвертировать его "
+            "в текст?"
+        ),
         "voice_convert_in_progress": "Распознаю голосовое сообщение...",
         "voice_convert_done": "Распознанный текст:\n{text}",
         "voice_convert_failed": "Не удалось распознать голосовое сообщение.",
-        "voice_convert_engine_missing": "Распознавание недоступно: установите faster-whisper и ffmpeg.",
+        "voice_convert_engine_missing": (
+            "Распознавание недоступно: установите faster-whisper и "
+            "ffmpeg."
+        ),
         "menu_questions_change": "Изменить вопросы",
         "menu_questions_count": "Количество вопросов",
         "settings_questions_menu": "Настройки ежедневных вопросов:",
-        "settings_questions_count_prompt": "Введите количество вопросов (1-10):",
+        "settings_questions_count_prompt": (
+            "Введите количество вопросов (1-10):"
+        ),
         "settings_entries_page_size": "Записей на страницу",
         "settings_entries_page_size_prompt": (
             "Выберите число записей на страницу (1-25):"
@@ -101,7 +120,9 @@ TEXTS = {
         "settings_entries_page_size_updated": (
             "Показываю по {count} записей на страницу."
         ),
-        "settings_questions_count_updated": "Количество вопросов обновлено: {count}.",
+        "settings_questions_count_updated": (
+            "Количество вопросов обновлено: {count}."
+        ),
         "settings_questions_count_invalid": "Введите число от 1 до 10.",
         "settings_reminder_times_menu": "Настройка времени напоминаний:",
         "export_menu_prompt": "Выберите период для выгрузки архива:",
@@ -112,8 +133,10 @@ TEXTS = {
         "settings_daily_prompt": "Введите ежедневное время в формате HH:MM",
     },
     "en": {
-        "start": "I am your diary bot. I will message first and ask for short notes.\n"
-        "You can use the menu buttons below.",
+        "start": (
+            "I am your diary bot. I will message first and ask for short "
+            "notes.\nYou can use the menu buttons below."
+        ),
         "need_start": "Send /start first.",
         "settings_menu": "Choose what to configure:",
         "settings_language": "Language",
@@ -140,7 +163,10 @@ TEXTS = {
         "view_prompt": "Choose an action:",
         "view_more": "Show next {count} entries",
         "manage_entries_header": "Latest entries (preview):",
-        "manage_entries_prompt": "Enter the entry index you want to edit or delete (for example, d1).",
+        "manage_entries_prompt": (
+            "Enter the entry index you want to edit or delete "
+            "(for example, d1)."
+        ),
         "manage_entries_empty": "You have no entries to edit yet.",
         "manage_entries_more": "Show more",
         "manage_entries_page_end": "No more entries.",
@@ -177,18 +203,28 @@ TEXTS = {
         "settings_voice_recognition_auto": "Automatic recognition",
         "settings_voice_recognition_confirm": "After confirmation",
         "settings_voice_recognition_off": "Disabled",
-        "settings_voice_recognition_mode_auto": "Voice recognition: automatic.",
-        "settings_voice_recognition_mode_confirm": "Voice recognition: after confirmation.",
+        "settings_voice_recognition_mode_auto": (
+            "Voice recognition: automatic."
+        ),
+        "settings_voice_recognition_mode_confirm": (
+            "Voice recognition: after confirmation."
+        ),
         "settings_voice_recognition_mode_off": "Voice recognition: disabled.",
-        "voice_convert_confirmation": "You sent a voice message. Convert it to text?",
+        "voice_convert_confirmation": (
+            "You sent a voice message. Convert it to text?"
+        ),
         "voice_convert_in_progress": "Recognizing voice message...",
         "voice_convert_done": "Recognized text:\n{text}",
         "voice_convert_failed": "Failed to recognize voice message.",
-        "voice_convert_engine_missing": "Recognition unavailable: install faster-whisper and ffmpeg.",
+        "voice_convert_engine_missing": (
+            "Recognition unavailable: install faster-whisper and ffmpeg."
+        ),
         "menu_questions_change": "Change questions",
         "menu_questions_count": "Questions count",
         "settings_questions_menu": "Daily questions settings:",
-        "settings_questions_count_prompt": "Enter the number of questions (1-10):",
+        "settings_questions_count_prompt": (
+            "Enter the number of questions (1-10):"
+        ),
         "settings_entries_page_size": "Entries per page",
         "settings_entries_page_size_prompt": (
             "Choose entries per page (1-25):"
@@ -197,7 +233,9 @@ TEXTS = {
         "settings_entries_page_size_updated": (
             "Now showing {count} entries per page."
         ),
-        "settings_questions_count_updated": "Questions count updated: {count}.",
+        "settings_questions_count_updated": (
+            "Questions count updated: {count}."
+        ),
         "settings_questions_count_invalid": "Enter a number from 1 to 10.",
         "settings_reminder_times_menu": "Configure reminder times:",
         "export_menu_prompt": "Choose a period for archive export:",
@@ -209,7 +247,8 @@ TEXTS = {
     },
     "fr": {
         "start": "Je suis votre bot-journal. J'écrirai en premier et "
-        "demanderai de courtes notes.\nVous pouvez utiliser le menu ci-dessous.",
+        "demanderai de courtes notes.\n"
+        "Vous pouvez utiliser le menu ci-dessous.",
         "need_start": "Envoyez d'abord /start.",
         "settings_menu": "Choisissez ce que vous voulez configurer :",
         "settings_language": "Langue",
@@ -236,11 +275,16 @@ TEXTS = {
         "view_prompt": "Choisissez une action :",
         "view_more": "Afficher les {count} entrées suivantes",
         "manage_entries_header": "Dernières entrées (aperçu) :",
-        "manage_entries_prompt": "Entrez l'index de l'entrée à modifier ou supprimer (par exemple, d1).",
+        "manage_entries_prompt": (
+            "Entrez l'index de l'entrée à modifier ou supprimer "
+            "(par exemple, d1)."
+        ),
         "manage_entries_empty": "Vous n'avez pas encore d'entrées à modifier.",
         "manage_entries_more": "Afficher plus",
         "manage_entries_page_end": "Il n'y a plus d'entrées.",
-        "manage_entries_actions_prompt": "Choisissez une action pour cette entrée :",
+        "manage_entries_actions_prompt": (
+            "Choisissez une action pour cette entrée :"
+        ),
         "manage_entries_edit": "Modifier",
         "manage_entries_delete": "Supprimer",
         "entry_index_prompt": "Entrez l'index de l'entrée (par exemple, d1) :",
@@ -262,27 +306,44 @@ TEXTS = {
         "settings_appearance": "Apparence",
         "settings_toggle_icons": "Icônes du menu",
         "settings_voice_recognition": "Reconnaissance vocale",
-        "settings_toggle_icons_prompt": "Choisissez le mode des icônes du menu :",
+        "settings_toggle_icons_prompt": (
+            "Choisissez le mode des icônes du menu :"
+        ),
         "toggle_enable": "Activer",
         "toggle_disable": "Désactiver",
         "settings_icons_enabled": "Icônes du menu : activées.",
         "settings_icons_disabled": "Icônes du menu : désactivées.",
-        "settings_voice_recognition_prompt": "Choisissez le mode de reconnaissance vocale :",
+        "settings_voice_recognition_prompt": (
+            "Choisissez le mode de reconnaissance vocale :"
+        ),
         "settings_voice_recognition_auto": "Reconnaissance automatique",
         "settings_voice_recognition_confirm": "Après confirmation",
         "settings_voice_recognition_off": "Désactivée",
-        "settings_voice_recognition_mode_auto": "Reconnaissance vocale : automatique.",
-        "settings_voice_recognition_mode_confirm": "Reconnaissance vocale : après confirmation.",
-        "settings_voice_recognition_mode_off": "Reconnaissance vocale : désactivée.",
-        "voice_convert_confirmation": "Vous avez envoyé un message vocal. Le convertir en texte ?",
+        "settings_voice_recognition_mode_auto": (
+            "Reconnaissance vocale : automatique."
+        ),
+        "settings_voice_recognition_mode_confirm": (
+            "Reconnaissance vocale : après confirmation."
+        ),
+        "settings_voice_recognition_mode_off": (
+            "Reconnaissance vocale : désactivée."
+        ),
+        "voice_convert_confirmation": (
+            "Vous avez envoyé un message vocal. Le convertir en texte ?"
+        ),
         "voice_convert_in_progress": "Reconnaissance du message vocal...",
         "voice_convert_done": "Texte reconnu :\n{text}",
         "voice_convert_failed": "Échec de la reconnaissance vocale.",
-        "voice_convert_engine_missing": "Reconnaissance indisponible : installez faster-whisper et ffmpeg.",
+        "voice_convert_engine_missing": (
+            "Reconnaissance indisponible : installez faster-whisper et "
+            "ffmpeg."
+        ),
         "menu_questions_change": "Modifier les questions",
         "menu_questions_count": "Nombre de questions",
         "settings_questions_menu": "Paramètres des questions quotidiennes :",
-        "settings_questions_count_prompt": "Entrez le nombre de questions (1-10) :",
+        "settings_questions_count_prompt": (
+            "Entrez le nombre de questions (1-10) :"
+        ),
         "settings_entries_page_size": "Entrées par page",
         "settings_entries_page_size_prompt": (
             "Choisissez le nombre d’entrées par page (1-25) :"
@@ -293,10 +354,14 @@ TEXTS = {
         "settings_entries_page_size_updated": (
             "Affichage de {count} entrées par page."
         ),
-        "settings_questions_count_updated": "Nombre de questions mis à jour : {count}.",
+        "settings_questions_count_updated": (
+            "Nombre de questions mis à jour : {count}."
+        ),
         "settings_questions_count_invalid": "Entrez un nombre entre 1 et 10.",
         "settings_reminder_times_menu": "Configurer les heures des rappels :",
-        "export_menu_prompt": "Choisissez une période pour exporter l’archive :",
+        "export_menu_prompt": (
+            "Choisissez une période pour exporter l’archive :"
+        ),
         "import_prompt": "Envoyez un fichier ZIP de sauvegarde à importer.",
         "import_invalid_archive": "Impossible de lire l’archive.",
         "import_done_message": "Import terminé.",
@@ -332,16 +397,23 @@ TEXTS = {
         "view_prompt": "Wähle eine Aktion:",
         "view_more": "Nächste {count} Einträge anzeigen",
         "manage_entries_header": "Letzte Einträge (Vorschau):",
-        "manage_entries_prompt": "Gib den Index des Eintrags ein, den du bearbeiten oder löschen möchtest (z. B. d1).",
+        "manage_entries_prompt": (
+            "Gib den Index des Eintrags ein, den du bearbeiten oder "
+            "löschen möchtest (z. B. d1)."
+        ),
         "manage_entries_empty": "Du hast noch keine Einträge zum Bearbeiten.",
         "manage_entries_more": "Mehr anzeigen",
         "manage_entries_page_end": "Keine weiteren Einträge.",
-        "manage_entries_actions_prompt": "Wähle eine Aktion für diesen Eintrag:",
+        "manage_entries_actions_prompt": (
+            "Wähle eine Aktion für diesen Eintrag:"
+        ),
         "manage_entries_edit": "Bearbeiten",
         "manage_entries_delete": "Löschen",
         "entry_index_prompt": "Gib den Eintragsindex ein (z. B. d1):",
         "entry_index_invalid": "Der Eintragsindex darf nicht leer sein.",
-        "entry_not_found": "Eintrag mit Index {entry_index} wurde nicht gefunden.",
+        "entry_not_found": (
+            "Eintrag mit Index {entry_index} wurde nicht gefunden."
+        ),
         "menu_questions_add": "Frage hinzufügen",
         "menu_questions_delete": "Frage löschen",
         "menu_questions_pause": "Frage pausieren",
@@ -363,22 +435,35 @@ TEXTS = {
         "toggle_disable": "Deaktivieren",
         "settings_icons_enabled": "Menü-Symbole: aktiviert.",
         "settings_icons_disabled": "Menü-Symbole: deaktiviert.",
-        "settings_voice_recognition_prompt": "Wähle den Modus der Spracherkennung:",
+        "settings_voice_recognition_prompt": (
+            "Wähle den Modus der Spracherkennung:"
+        ),
         "settings_voice_recognition_auto": "Automatische Erkennung",
         "settings_voice_recognition_confirm": "Nach Bestätigung",
         "settings_voice_recognition_off": "Deaktiviert",
-        "settings_voice_recognition_mode_auto": "Spracherkennung: automatisch.",
-        "settings_voice_recognition_mode_confirm": "Spracherkennung: nach Bestätigung.",
+        "settings_voice_recognition_mode_auto": (
+            "Spracherkennung: automatisch."
+        ),
+        "settings_voice_recognition_mode_confirm": (
+            "Spracherkennung: nach Bestätigung."
+        ),
         "settings_voice_recognition_mode_off": "Spracherkennung: deaktiviert.",
-        "voice_convert_confirmation": "Du hast eine Sprachnachricht gesendet. In Text umwandeln?",
+        "voice_convert_confirmation": (
+            "Du hast eine Sprachnachricht gesendet. In Text umwandeln?"
+        ),
         "voice_convert_in_progress": "Sprachnachricht wird erkannt...",
         "voice_convert_done": "Erkannter Text:\n{text}",
         "voice_convert_failed": "Sprachnachricht konnte nicht erkannt werden.",
-        "voice_convert_engine_missing": "Erkennung nicht verfügbar: faster-whisper und ffmpeg installieren.",
+        "voice_convert_engine_missing": (
+            "Erkennung nicht verfügbar: faster-whisper und ffmpeg "
+            "installieren."
+        ),
         "menu_questions_change": "Fragen bearbeiten",
         "menu_questions_count": "Anzahl Fragen",
         "settings_questions_menu": "Einstellungen für tägliche Fragen:",
-        "settings_questions_count_prompt": "Gib die Anzahl der Fragen ein (1-10):",
+        "settings_questions_count_prompt": (
+            "Gib die Anzahl der Fragen ein (1-10):"
+        ),
         "settings_entries_page_size": "Einträge pro Seite",
         "settings_entries_page_size_prompt": (
             "Wähle die Anzahl der Einträge pro Seite (1-25):"
@@ -389,7 +474,9 @@ TEXTS = {
         "settings_entries_page_size_updated": (
             "Es werden jetzt {count} Einträge pro Seite angezeigt."
         ),
-        "settings_questions_count_updated": "Anzahl Fragen aktualisiert: {count}.",
+        "settings_questions_count_updated": (
+            "Anzahl Fragen aktualisiert: {count}."
+        ),
         "settings_questions_count_invalid": "Gib eine Zahl von 1 bis 10 ein.",
         "settings_reminder_times_menu": "Erinnerungszeiten konfigurieren:",
         "export_menu_prompt": "Wähle einen Zeitraum für den Archivexport:",

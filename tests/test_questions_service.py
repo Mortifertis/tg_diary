@@ -57,6 +57,51 @@ def test_add_daily_question_rejects_duplicates(session, user) -> None:
     assert added is False
 
 
+def test_add_daily_question_strips_whitespace(session, user) -> None:
+    ensure_default_daily_questions(session, user)
+    session.commit()
+
+    added = add_daily_question(session, user, "   Мой вопрос с пробелами   ")
+    session.commit()
+
+    assert added is True
+    stored = (
+        session.query(UserQuestion)
+        .filter_by(user_id=user.id, text="Мой вопрос с пробелами")
+        .first()
+    )
+    assert stored is not None
+
+
+def test_add_daily_question_rejects_empty_text(session, user) -> None:
+    ensure_default_daily_questions(session, user)
+    session.commit()
+
+    added = add_daily_question(session, user, "   ")
+
+    assert added is False
+
+
+def test_delete_daily_question_returns_false_for_unknown_id(session, user) -> None:
+    ensure_default_daily_questions(session, user)
+    session.commit()
+
+    deleted = delete_daily_question(session, user, 999999)
+
+    assert deleted is False
+
+
+def test_set_daily_question_active_returns_false_for_unknown_id(
+    session, user
+) -> None:
+    ensure_default_daily_questions(session, user)
+    session.commit()
+
+    paused = set_daily_question_active(session, user, 999999, False)
+
+    assert paused is False
+
+
 def test_ensure_default_daily_questions_restores_missing_defaults(
     session, user
 ) -> None:

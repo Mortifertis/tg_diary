@@ -8,6 +8,22 @@ from app.models import EntryType, User, UserQuestion
 from app.questions import DAILY_QUESTIONS
 
 
+def _get_daily_question_by_id(
+    session: Session,
+    user: User,
+    question_id: int,
+) -> UserQuestion | None:
+    return (
+        session.query(UserQuestion)
+        .filter_by(
+            id=question_id,
+            user_id=user.id,
+            entry_type=EntryType.daily,
+        )
+        .first()
+    )
+
+
 def ensure_default_daily_questions(session: Session, user: User) -> None:
     existing_default_rows = session.query(UserQuestion.text).filter_by(
         user_id=user.id,
@@ -89,17 +105,10 @@ def add_daily_question(session: Session, user: User, text: str) -> bool:
 def delete_daily_question(
     session: Session, user: User, question_id: int
 ) -> bool:
-    question = (
-        session.query(UserQuestion)
-        .filter_by(
-            id=question_id,
-            user_id=user.id,
-            entry_type=EntryType.daily,
-        )
-        .first()
-    )
+    question = _get_daily_question_by_id(session, user, question_id)
     if not question:
         return False
+
     session.delete(question)
     return True
 
@@ -110,16 +119,9 @@ def set_daily_question_active(
     question_id: int,
     is_active: bool,
 ) -> bool:
-    question = (
-        session.query(UserQuestion)
-        .filter_by(
-            id=question_id,
-            user_id=user.id,
-            entry_type=EntryType.daily,
-        )
-        .first()
-    )
+    question = _get_daily_question_by_id(session, user, question_id)
     if not question:
         return False
-    setattr(question, "is_active", is_active)
+
+    question.is_active = is_active
     return True
