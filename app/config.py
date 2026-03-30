@@ -22,6 +22,12 @@ class Config:
     whisper_device: str
     celery_broker_url: str
     celery_result_backend: str
+    log_level: str
+    sentry_dsn: str
+    sentry_environment: str
+    sentry_traces_sample_rate: float
+    observability_host: str
+    observability_port: int
 
 
 def load_config() -> Config:
@@ -50,4 +56,12 @@ def load_config() -> Config:
             "CELERY_RESULT_BACKEND",
             os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         ),
+        log_level=os.getenv("LOG_LEVEL", "INFO"),
+        sentry_dsn=os.getenv("SENTRY_DSN", ""),
+        sentry_environment=os.getenv("SENTRY_ENVIRONMENT", "dev"),
+        sentry_traces_sample_rate=float(
+            os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")
+        ),
+        observability_host=os.getenv("OBSERVABILITY_HOST", "0.0.0.0"),
+        observability_port=int(os.getenv("OBSERVABILITY_PORT", "8001")),
     )

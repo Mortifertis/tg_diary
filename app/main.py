@@ -11,12 +11,26 @@ from app.constants import BOT_TOKEN_MISSING
 from app.db import create_session_factory, run_migrations
 from app.fsm import create_redis_storage
 from app.handlers import common, entry, settings
+from app.observability import (BOT_STARTUPS_TOTAL, POLLING_EXCEPTIONS_TOTAL,
+                               setup_logging, setup_sentry,
+                               start_observability_server)
 
 
 async def main() -> None:
-    logging.basicConfig(level=logging.INFO)
     load_dotenv()
     config = load_config()
+    setup_logging(config.log_level)
+    setup_sentry(
+        dsn=config.sentry_dsn,
+        environment=config.sentry_environment,
+        traces_sample_rate=config.sentry_traces_sample_rate,
+    )
+
+    observability_server = start_observability_server(
+        host=config.observability_host,
+        port=config.observability_port,
+    )
+
     if not config.bot_token:
         raise RuntimeError(BOT_TOKEN_MISSING)
 
@@ -36,14 +50,20 @@ async def main() -> None:
     dp.include_router(settings.router)
     dp.include_router(entry.router)
 
+    BOT_STARTUPS_TOTAL.inc()
     try:
         await dp.start_polling(bot)
     except asyncio.CancelledError:
         logging.info("Polling cancelled")
+    except Exception:
+        POLLING_EXCEPTIONS_TOTAL.labels(component="polling").inc()
+        logging.exception("Unexpected polling error")
+        raise
     finally:
         await storage.close()
         await bot.session.close()
-
+        if observability_server is not None:
+            observability_server.stop()
 
 if __name__ == "__main__":
     try:

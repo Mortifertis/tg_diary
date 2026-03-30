@@ -15,6 +15,7 @@ from app.db import create_session_factory
 from app.fsm import create_redis_storage
 from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
+from app.observability import REMINDER_TASKS_TOTAL
 from app.prompts import build_prompt
 from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
                            WEEKLY_QUESTIONS, pick_questions)
@@ -41,12 +42,14 @@ def enqueue_due_reminders() -> int:
     for user_id in user_ids:
         process_user_reminders.delay(user_id)
 
+    REMINDER_TASKS_TOTAL.labels(task="enqueue_due_reminders").inc()
     LOGGER.info("Enqueued reminder tasks for %s users", len(user_ids))
     return len(user_ids)
 
 
 @celery_app.task(name="app.tasks.reminders.process_user_reminders")
 def process_user_reminders(user_id: int) -> int:
+    REMINDER_TASKS_TOTAL.labels(task="process_user_reminders").inc()
     return asyncio.run(_process_user_reminders_async(user_id))
 
 

@@ -4,8 +4,15 @@ from celery import Celery
 from celery.schedules import crontab
 
 from app.config import load_config
+from app.observability import setup_logging, setup_sentry
 
 config = load_config()
+setup_logging(config.log_level)
+setup_sentry(
+    dsn=config.sentry_dsn,
+    environment=config.sentry_environment,
+    traces_sample_rate=config.sentry_traces_sample_rate,
+)
 
 celery_app = Celery(
     "tg_diary",
