@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from app.config import load_config
 from app.constants import BOT_TOKEN_MISSING
-from app.db import create_session_factory, init_db
+from app.db import create_session_factory, run_migrations
 from app.handlers import common, entry, settings
 from app.scheduler import create_scheduler
 
@@ -21,9 +21,8 @@ async def main() -> None:
     if not config.bot_token:
         raise RuntimeError(BOT_TOKEN_MISSING)
 
+    run_migrations(config.database_url)
     session_factory = create_session_factory(config.database_url)
-    engine = session_factory.kw["bind"]
-    init_db(engine)
 
     storage = MemoryStorage()
     bot = Bot(token=config.bot_token)

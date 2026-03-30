@@ -33,8 +33,13 @@ Telegram-бот дневника с ежедневными, еженедельн
    ```bash
    pip install -r requirements.txt
    ```
-3. Создайте файл `.env` по примеру `.env.example` и заполните токен.
-4. Запустите бота:
+3. Запустите PostgreSQL (например, через Docker Compose).
+4. Создайте файл `.env` и задайте `BOT_TOKEN` и `DATABASE_URL`.
+5. Примените миграции:
+   ```bash
+   alembic upgrade head
+   ```
+6. Запустите бота:
    ```bash
    python -m app.main
    ```
@@ -43,14 +48,14 @@ Telegram-бот дневника с ежедневными, еженедельн
 Перед коммитом рекомендуется прогнать:
 ```bash
 isort .
-flake8 app tests
+flake8 app tests migrations
 pytest -q
 ```
 
 ## Переменные окружения
 Пример доступен в `.env.example`.
 - `BOT_TOKEN` — токен Telegram-бота.
-- `DATABASE_URL` — строка подключения (по умолчанию SQLite).
+- `DATABASE_URL` — строка подключения (рекомендуется PostgreSQL).
 - `DEFAULT_TIMEZONE` — часовой пояс пользователя по умолчанию (например, `Europe/Moscow`).
 - `DEFAULT_DAILY_TIME` — время ежедневной записи (HH:MM).
 - `DEFAULT_WEEKLY_DAY` — день недели (0=пн ... 6=вс).
@@ -62,6 +67,20 @@ pytest -q
 - `WHISPER_DEVICE` — устройство для распознавания (`cpu`/`cuda`, по умолчанию `cpu`).
 
 Для распознавания голосовых локально нужны `faster-whisper` и бинарь `ffmpeg` в системе.
+
+
+## Миграции базы данных
+Проект использует Alembic для версионирования схемы базы данных.
+
+Основные команды:
+```bash
+alembic upgrade head
+alembic downgrade -1
+alembic revision --autogenerate -m "описание"
+```
+
+При старте приложения выполняется `upgrade head`, поэтому схема
+в production приводится к актуальной ревизии автоматически.
 
 ## Docker
 1. Заполните `.env.docker` и укажите токен бота.

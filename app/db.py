@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from sqlalchemy import create_engine, inspect, text
+from pathlib import Path
+
+from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()
 
 
 def create_session_factory(database_url: str):
-    engine = create_engine(database_url, future=True)
+    engine = create_engine(
+        database_url,
+        future=True,
+        pool_pre_ping=True,
+    )
     return sessionmaker(
         bind=engine,
         autoflush=False,
@@ -17,84 +23,21 @@ def create_session_factory(database_url: str):
     )
 
 
-def init_db(engine):
+def init_db(engine) -> None:
+    """Create schema directly.
+
+    This helper is intended for tests and local scripts.
+    Production schema updates should be managed via Alembic migrations.
+    """
     Base.metadata.create_all(engine)
-    _ensure_sqlite_schema_compatibility(engine)
 
 
-def _ensure_sqlite_schema_compatibility(engine) -> None:
-    if engine.dialect.name != "sqlite":
-        return
+def run_migrations(database_url: str) -> None:
+    """Upgrade database schema to the latest Alembic revision."""
+    from alembic import command
+    from alembic.config import Config
 
-    inspector = inspect(engine)
-    table_names = inspector.get_table_names()
-    if "entries" not in table_names:
-        return
-
-    existing_columns = {
-        column["name"] for column in inspector.get_columns("entries")
-    }
-    if "entry_index" not in existing_columns:
-        with engine.begin() as connection:
-            connection.execute(
-                text("ALTER TABLE entries ADD COLUMN entry_index VARCHAR(16)")
-            )
-            connection.execute(
-                text(
-                    """
-                    UPDATE entries
-                    SET entry_index = CASE entry_type
-                        WHEN 'daily' THEN 'd' || id
-                        WHEN 'weekly' THEN 'w' || id
-                        WHEN 'monthly' THEN 'm' || id
-                        WHEN 'user' THEN 'u' || id
-                        ELSE 'e' || id
-                    END
-                    WHERE entry_index IS NULL
-                    """
-                )
-            )
-
-    user_columns = {
-        column["name"] for column in inspector.get_columns("users")
-    }
-    with engine.begin() as connection:
-        if "language" not in user_columns:
-            connection.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN language "
-                    "VARCHAR(8) NOT NULL DEFAULT 'ru'"
-                )
-            )
-        if "display_name" not in user_columns:
-            connection.execute(
-                text("ALTER TABLE users ADD COLUMN display_name VARCHAR(128)")
-            )
-        if "enable_menu_icons" not in user_columns:
-            connection.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN enable_menu_icons "
-                    "BOOLEAN NOT NULL DEFAULT 1"
-                )
-            )
-        if "daily_questions_count" not in user_columns:
-            connection.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN daily_questions_count "
-                    "INTEGER NOT NULL DEFAULT 3"
-                )
-            )
-        if "entries_page_size" not in user_columns:
-            connection.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN entries_page_size "
-                    "INTEGER NOT NULL DEFAULT 5"
-                )
-            )
-        if "voice_recognition_mode" not in user_columns:
-            connection.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN voice_recognition_mode "
-                    "VARCHAR(16) NOT NULL DEFAULT 'auto'"
-                )
-            )
+    alembic_ini_path = Path(__file__).resolve().parent.parent / "alembic.ini"
+    alembic_cfg = Config(str(alembic_ini_path))
+    alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+    command.upgrade(alembic_cfg, "head")

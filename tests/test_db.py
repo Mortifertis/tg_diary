@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from sqlalchemy import create_engine, text
+from pathlib import Path
 
-from app.db import create_session_factory, init_db
+import pytest
+from sqlalchemy import create_engine, inspect
+
+from app.db import create_session_factory, init_db, run_migrations
 
 
 def test_create_session_factory_disables_expire_on_commit():
@@ -11,39 +14,22 @@ def test_create_session_factory_disables_expire_on_commit():
     assert session_factory.kw["expire_on_commit"] is False
 
 
-def test_init_db_adds_missing_entry_index_column_for_legacy_sqlite_schema():
+def test_init_db_creates_users_table_for_test_setup():
     engine = create_engine("sqlite:///:memory:", future=True)
-    with engine.begin() as connection:
-        connection.execute(
-            text(
-                """
-                CREATE TABLE entries (
-                    id INTEGER PRIMARY KEY,
-                    user_id INTEGER NOT NULL,
-                    entry_type VARCHAR(7) NOT NULL,
-                    entry_date DATE NOT NULL,
-                    question VARCHAR(255),
-                    text TEXT NOT NULL,
-                    mood VARCHAR(16),
-                    created_at DATETIME
-                )
-                """
-            )
-        )
-        connection.execute(
-            text(
-                """
-                INSERT INTO entries (id, user_id, entry_type, entry_date, text)
-                VALUES (1, 1, 'daily', '2024-01-01', 'legacy')
-                """
-            )
-        )
 
     init_db(engine)
 
-    with engine.connect() as connection:
-        row = connection.execute(
-            text("SELECT entry_index FROM entries WHERE id = 1")
-        ).one()
+    inspector = inspect(engine)
+    assert "users" in inspector.get_table_names()
 
-    assert row.entry_index == "d1"
+
+def test_run_migrations_upgrades_schema_to_head(tmp_path: Path):
+    pytest.importorskip("alembic")
+    sqlite_path = tmp_path / "migration_test.db"
+    database_url = f"sqlite:///{sqlite_path}"
+
+    run_migrations(database_url)
+
+    engine = create_engine(database_url, future=True)
+    inspector = inspect(engine)
+    assert "entries" in inspector.get_table_names()
