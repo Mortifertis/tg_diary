@@ -63,12 +63,9 @@ def upgrade() -> None:
         sa.Column("daily_reminder_stage", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("next_due_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("telegram_id"),
     )
-    op.create_index("ix_users_next_due_at", "users", ["next_due_at"])
-
     op.create_table(
         "entries",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -126,7 +123,6 @@ def downgrade() -> None:
     op.drop_table("user_questions")
     op.drop_table("entry_attachments")
     op.drop_table("entries")
-    op.drop_index("ix_users_next_due_at", table_name="users")
     op.drop_table("users")
 
     bind = op.get_bind()
