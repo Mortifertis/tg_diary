@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint (isort)
+        run: isort --check-only .
+
+      - name: Lint (flake8)
+        run: flake8 app tests migrations
+
+      - name: Type check (phase 1)
+        run: mypy --config-file mypy.ini
+
+      - name: Tests
+        run: pytest -q
+
+      - name: Migration checks
+        run: pytest -q tests/test_migrations_ci.py
+
+      - name: Performance regression checks
+        run: pytest -q -m performance

@@ -55,10 +55,18 @@ Telegram-бот дневника с ежедневными, еженедельн
 ## Проверка качества
 Перед коммитом рекомендуется прогнать:
 ```bash
-isort .
-flake8 app tests migrations
+pip install -r requirements.txt -r requirements-dev.txt
+pre-commit install
+pre-commit run --all-files
+mypy --config-file mypy.ini
 pytest -q
+pytest -q -m performance
 ```
+
+### Поэтапный mypy
+Сейчас включён **этап 1**: проверяются только `app/i18n.py` и
+`app/services/timezones.py` через `mypy.ini`.
+Следующий этап — добавлять новые модули в `files` после исправления типов.
 
 ## Переменные окружения
 Пример доступен в `.env.example`.
