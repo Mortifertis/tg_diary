@@ -20,6 +20,8 @@ class Config:
     reminder_evening_hour: int
     whisper_model: str
     whisper_device: str
+    celery_broker_url: str
+    celery_result_backend: str
 
 
 def load_config() -> Config:
@@ -40,4 +42,12 @@ def load_config() -> Config:
         reminder_evening_hour=int(os.getenv("REMINDER_EVENING_HOUR", "20")),
         whisper_model=os.getenv("WHISPER_MODEL", "small"),
         whisper_device=os.getenv("WHISPER_DEVICE", "cpu"),
+        celery_broker_url=os.getenv(
+            "CELERY_BROKER_URL",
+            os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+        ),
+        celery_result_backend=os.getenv(
+            "CELERY_RESULT_BACKEND",
+            os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+        ),
     )

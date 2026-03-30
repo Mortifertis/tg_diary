@@ -5,7 +5,8 @@ from zoneinfo import ZoneInfo
 
 from app.models import Entry, EntryType
 from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
-                                    due_weekly_reminder)
+                                    due_weekly_reminder,
+                                    list_due_user_candidates, next_due_at)
 
 
 def test_due_daily_reminders_progresses_stages(session, user):
@@ -125,3 +126,31 @@ def test_daily_reminder_ignores_user_entries(session, user):
     due = due_daily_reminders(session, user, now, reminder_evening_hour=20)
 
     assert [item.entry_type for item in due] == [EntryType.daily]
+
+
+def test_next_due_at_returns_future_utc_datetime(session, user):
+    now = datetime(2024, 1, 10, 8, 0, tzinfo=ZoneInfo("UTC"))
+
+    due_at = next_due_at(
+        session,
+        user,
+        now,
+        reminder_evening_hour=20,
+    )
+
+    assert due_at.tzinfo is not None
+    assert due_at >= now
+
+
+def test_list_due_user_candidates_filters_by_next_due_at(session, user):
+    now = datetime(2024, 1, 10, 8, 0, tzinfo=ZoneInfo("UTC"))
+    user.next_due_at = datetime(2024, 1, 10, 9, 0, tzinfo=ZoneInfo("UTC"))
+    session.commit()
+
+    assert list_due_user_candidates(session, now) == []
+
+    user.next_due_at = datetime(2024, 1, 10, 7, 0, tzinfo=ZoneInfo("UTC"))
+    session.commit()
+
+    due_users = list_due_user_candidates(session, now)
+    assert [item.id for item in due_users] == [user.id]

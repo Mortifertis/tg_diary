@@ -11,7 +11,6 @@ from app.constants import BOT_TOKEN_MISSING
 from app.db import create_session_factory, run_migrations
 from app.fsm import create_redis_storage
 from app.handlers import common, entry, settings
-from app.scheduler import create_scheduler
 
 
 async def main() -> None:
@@ -37,15 +36,11 @@ async def main() -> None:
     dp.include_router(settings.router)
     dp.include_router(entry.router)
 
-    scheduler = create_scheduler(bot, storage)
-    scheduler.start()
-
     try:
         await dp.start_polling(bot)
     except asyncio.CancelledError:
         logging.info("Polling cancelled")
     finally:
-        scheduler.shutdown(wait=False)
         await storage.close()
         await bot.session.close()
 

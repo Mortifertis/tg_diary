@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from datetime import time as dt_time
 from datetime import timedelta
 
@@ -9,6 +9,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from app.config import load_config
 from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_PAUSE,
                            MENU_RESUME, MONTHLY_TIME_UPDATED_TEMPLATE,
                            MONTHLY_USAGE_MESSAGE, NEED_START_MESSAGE,
@@ -40,11 +41,22 @@ from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
                                     reset_daily_questions_to_default,
                                     set_daily_question_active)
+from app.services.reminders import next_due_at
 from app.services.users import get_user_by_telegram_id
 from app.states import SettingsState
 from app.storage import get_session
 
 router = Router()
+
+
+def _recalculate_next_due_at(session, user) -> None:
+    config = load_config()
+    user.next_due_at = next_due_at(
+        session,
+        user,
+        datetime.now(UTC),
+        config.reminder_evening_hour,
+    )
 
 
 def _menu_text(message: Message, key: str) -> bool:
@@ -131,6 +143,7 @@ def _update_daily_time(message: Message, time_value: str) -> str:
         user.daily_time = time_value
         user.daily_reminder_date = None
         user.daily_reminder_stage = 0
+        _recalculate_next_due_at(session, user)
     return DAILY_TIME_UPDATED_TEMPLATE.format(time_value=time_value)
 
 
@@ -141,6 +154,7 @@ def _update_weekly_time(message: Message, day: int, time_value: str) -> str:
             return NEED_START_MESSAGE
         user.weekly_day = day
         user.weekly_time = time_value
+        _recalculate_next_due_at(session, user)
     return WEEKLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value)
 
 
@@ -151,6 +165,7 @@ def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
             return NEED_START_MESSAGE
         user.monthly_day = day
         user.monthly_time = time_value
+        _recalculate_next_due_at(session, user)
     return MONTHLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value)
 
 
@@ -761,6 +776,7 @@ async def pause(message: Message) -> None:
             await message.answer(NEED_START_MESSAGE)
             return
         user.pause_until = pause_until
+        _recalculate_next_due_at(session, user)
     await message.answer(
         PAUSE_ENABLED_TEMPLATE.format(pause_until=pause_until)
     )
@@ -775,4 +791,5 @@ async def resume(message: Message) -> None:
             await message.answer(NEED_START_MESSAGE)
             return
         user.pause_until = None
+        _recalculate_next_due_at(session, user)
     await message.answer(PAUSE_DISABLED_MESSAGE)

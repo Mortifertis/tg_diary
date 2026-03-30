@@ -56,6 +56,7 @@ def build_user_backup_archive(
         "pause_until": _serialize_date(user.pause_until),
         "daily_reminder_date": _serialize_date(user.daily_reminder_date),
         "daily_reminder_stage": user.daily_reminder_stage,
+        "next_due_at": _serialize_datetime(user.next_due_at),
     }
 
     entries_payload = []
@@ -162,6 +163,9 @@ def import_user_backup_archive(user: User, archive_bytes: bytes) -> None:
     )
     user.daily_reminder_stage = int(
         settings_payload.get("daily_reminder_stage", 0)
+    )
+    user.next_due_at = _parse_iso_datetime(
+        settings_payload.get("next_due_at")
     )
 
     user.entries.clear()

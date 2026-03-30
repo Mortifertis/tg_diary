@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import cast
 
 from aiogram import F, Router
@@ -48,6 +48,7 @@ from app.services.entries import (count_entries, delete_entry_by_index,
 from app.services.questions import (ensure_default_daily_questions,
                                     list_active_daily_questions,
                                     list_daily_questions)
+from app.services.reminders import next_due_at
 from app.services.timezones import (format_user_datetime, local_date_for_user,
                                     local_day_start_to_utc_naive)
 from app.services.users import get_user_by_telegram_id
@@ -299,6 +300,13 @@ async def start(message: Message) -> None:
                 entries_page_size=5,
             )
             session.add(user)
+            session.flush()
+            user.next_due_at = next_due_at(
+                session,
+                user,
+                datetime.now(UTC),
+                config.reminder_evening_hour,
+            )
             session.commit()
         elif not user.display_name:
             user.display_name = _extract_display_name(message)
@@ -733,6 +741,15 @@ async def import_archive(message: Message, state: FSMContext) -> None:
             return
         try:
             import_user_backup_archive(user, payload)
+            from app.config import load_config
+
+            config = load_config()
+            user.next_due_at = next_due_at(
+                session,
+                user,
+                datetime.now(UTC),
+                config.reminder_evening_hour,
+            )
         except (KeyError, OSError, ValueError):
             await message.answer(tr(user.language, "import_invalid_archive"))
             return

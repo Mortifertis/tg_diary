@@ -39,7 +39,15 @@ Telegram-бот дневника с ежедневными, еженедельн
    ```bash
    alembic upgrade head
    ```
-6. Запустите бота:
+6. Запустите Celery worker:
+   ```bash
+   celery -A app.celery_app.celery_app worker -l info
+   ```
+7. В отдельном терминале запустите Celery beat:
+   ```bash
+   celery -A app.celery_app.celery_app beat -l info
+   ```
+8. Запустите бота:
    ```bash
    python -m app.main
    ```
@@ -68,6 +76,8 @@ pytest -q
 - `REMINDER_EVENING_HOUR` — час вечернего напоминания.
 - `WHISPER_MODEL` — локальная модель faster-whisper (по умолчанию `small`).
 - `WHISPER_DEVICE` — устройство для распознавания (`cpu`/`cuda`, по умолчанию `cpu`).
+- `CELERY_BROKER_URL` — URL брокера Celery (по умолчанию берется из `REDIS_URL`).
+- `CELERY_RESULT_BACKEND` — backend результатов Celery (по умолчанию берется из `REDIS_URL`).
 
 Для распознавания голосовых локально нужны `faster-whisper` и бинарь `ffmpeg` в системе.
 

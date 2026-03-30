@@ -51,6 +51,7 @@ class User(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+    next_due_at = Column(DateTime(timezone=True), index=True)
 
     entries = relationship(
         "Entry", back_populates="user", cascade="all, delete-orphan"
