@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (Boolean, Column, Date, DateTime, Enum, ForeignKey,
                         Integer, String, Text, UniqueConstraint)
@@ -43,9 +43,13 @@ class User(Base):
     pause_until = Column(Date)
     daily_reminder_date = Column(Date)
     daily_reminder_stage = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
     entries = relationship(
@@ -72,7 +76,9 @@ class Entry(Base):
     question = Column(String(255))
     text = Column(Text, nullable=False)
     mood = Column(String(16))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     user = relationship("User", back_populates="entries")
     attachments = relationship(
@@ -98,7 +104,9 @@ class EntryAttachment(Base):
     file_id = Column(String(255), nullable=False)
     file_name = Column(String(255), nullable=False)
     extension = Column(String(16), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     entry = relationship("Entry", back_populates="attachments")
 
@@ -117,6 +125,8 @@ class UserQuestion(Base):
     text = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     user = relationship("User", back_populates="questions")
