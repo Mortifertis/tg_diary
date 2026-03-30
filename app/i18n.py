@@ -311,6 +311,8 @@ TEXTS = {
         ),
         "toggle_enable": "Activer",
         "toggle_disable": "Désactiver",
+        "toggle_yes": "Oui",
+        "toggle_no": "Non",
         "settings_icons_enabled": "Icônes du menu : activées.",
         "settings_icons_disabled": "Icônes du menu : désactivées.",
         "settings_voice_recognition_prompt": (
@@ -433,6 +435,8 @@ TEXTS = {
         "settings_toggle_icons_prompt": "Wähle den Modus für Menü-Symbole:",
         "toggle_enable": "Aktivieren",
         "toggle_disable": "Deaktivieren",
+        "toggle_yes": "Ja",
+        "toggle_no": "Nein",
         "settings_icons_enabled": "Menü-Symbole: aktiviert.",
         "settings_icons_disabled": "Menü-Symbole: deaktiviert.",
         "settings_voice_recognition_prompt": (
@@ -490,16 +494,41 @@ TEXTS = {
 
 
 def normalize_language(language: str | None) -> str:
-    if language in SUPPORTED_LANGUAGES:
-        return language
+    if not language:
+        return DEFAULT_LANGUAGE
+    normalized = language.strip().lower().replace("_", "-")
+    base = normalized.split("-", maxsplit=1)[0]
+    if base in SUPPORTED_LANGUAGES:
+        return base
     return DEFAULT_LANGUAGE
 
 
 def tr(language: str | None, key: str, **kwargs: Any) -> str:
     normalized = normalize_language(language)
-    template = TEXTS[normalized].get(key, TEXTS[DEFAULT_LANGUAGE][key])
+    template = TEXTS[normalized].get(key)
+    if template is None:
+        template = TEXTS[DEFAULT_LANGUAGE].get(key, key)
     return template.format(**kwargs)
 
 
 def menu_variants(key: str) -> set[str]:
-    return {TEXTS[language][key] for language in SUPPORTED_LANGUAGES}
+    variants: set[str] = set()
+    for language in SUPPORTED_LANGUAGES:
+        template = TEXTS[language].get(key)
+        if template is None:
+            template = TEXTS[DEFAULT_LANGUAGE].get(key)
+        if template is not None:
+            variants.add(template)
+    return variants
+
+
+def validate_translations() -> dict[str, dict[str, set[str]]]:
+    reference_keys = set(TEXTS[DEFAULT_LANGUAGE])
+    report: dict[str, dict[str, set[str]]] = {}
+    for language in SUPPORTED_LANGUAGES:
+        keys = set(TEXTS[language])
+        report[language] = {
+            "missing": reference_keys - keys,
+            "extra": keys - reference_keys,
+        }
+    return report

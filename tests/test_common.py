@@ -4,6 +4,7 @@ from datetime import date, datetime
 from types import SimpleNamespace
 
 from app.handlers.common import (_build_edit_input_placeholder,
+                                 _detect_language,
                                  _format_manage_entries_preview,
                                  _format_recent_entries, _menu_text)
 from app.models import AttachmentType, Entry, EntryAttachment, EntryType, User
@@ -74,3 +75,11 @@ def test_menu_text_accepts_icon_prefix() -> None:
     message = SimpleNamespace(text="📝 Сделать новую запись")
 
     assert _menu_text(message, "menu_create")
+
+
+def test_detect_language_uses_telegram_locale() -> None:
+    message = SimpleNamespace(
+        from_user=SimpleNamespace(language_code="fr-CA"),
+    )
+
+    assert _detect_language(message) == "fr"

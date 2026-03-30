@@ -30,7 +30,7 @@ from app.constants import (BACKUP_MAX_PAGE_SIZE, DAILY_PROMPT_SUFFIX,
                            STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
                            STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE,
                            VIEW_SHOW_MORE_PREFIX)
-from app.i18n import menu_variants, tr
+from app.i18n import menu_variants, normalize_language, tr
 from app.keyboards import (MOOD_KEYBOARD, export_entries_keyboard,
                            main_menu_keyboard, manage_entries_actions_keyboard,
                            manage_entries_page_keyboard,
@@ -67,6 +67,13 @@ def _extract_display_name(message: Message) -> str:
     if from_user.username:
         return from_user.username.strip()
     return ""
+
+
+def _detect_language(message: Message) -> str:
+    from_user = message.from_user
+    if from_user is None:
+        return "ru"
+    return normalize_language(from_user.language_code)
 
 
 def _menu_text(message: Message, key: str) -> bool:
@@ -290,7 +297,7 @@ async def start(message: Message) -> None:
             user = User(
                 telegram_id=message.from_user.id,
                 timezone=config.timezone,
-                language="ru",
+                language=_detect_language(message),
                 display_name=_extract_display_name(message),
                 daily_time=config.daily_time_default,
                 weekly_day=config.weekly_day_default,
