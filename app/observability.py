@@ -5,6 +5,7 @@ import importlib.util
 import json
 import logging
 import socket
+import time
 from datetime import UTC, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -83,6 +84,118 @@ class PrometheusCounter:
         return "\n".join(lines)
 
 
+class _HistogramHandle:
+    def __init__(
+        self,
+        histogram: "PrometheusHistogram",
+        label_values: tuple[str, ...],
+    ) -> None:
+        self._histogram = histogram
+        self._label_values = label_values
+
+    def observe(self, amount: float) -> None:
+        self._histogram._observe_for_labels(self._label_values, amount)
+
+
+class PrometheusHistogram:
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        buckets: tuple[float, ...],
+        label_names: tuple[str, ...] = (),
+    ) -> None:
+        self.name = name
+        self.description = description
+        self.label_names = label_names
+        self.buckets = tuple(sorted(buckets))
+        self._lock = Lock()
+        self._values: dict[tuple[str, ...], dict[str, Any]] = {}
+        if not self.label_names:
+            self._values[()] = self._empty_bucket_state()
+
+    def labels(self, **labels: str) -> _HistogramHandle:
+        values = tuple(labels[key] for key in self.label_names)
+        return _HistogramHandle(histogram=self, label_values=values)
+
+    def _empty_bucket_state(self) -> dict[str, Any]:
+        return {
+            "count": 0.0,
+            "sum": 0.0,
+            "bucket_counts": [0.0 for _ in self.buckets],
+        }
+
+    def _observe_for_labels(
+        self,
+        label_values: tuple[str, ...],
+        amount: float,
+    ) -> None:
+        with self._lock:
+            state = self._values.get(label_values)
+            if state is None:
+                state = self._empty_bucket_state()
+                self._values[label_values] = state
+            state["count"] += 1.0
+            state["sum"] += amount
+            bucket_counts = state["bucket_counts"]
+            for index, bucket in enumerate(self.buckets):
+                if amount <= bucket:
+                    bucket_counts[index] += 1.0
+
+    def to_prometheus(self) -> str:
+        lines = [
+            f"# HELP {self.name} {self.description}",
+            f"# TYPE {self.name} histogram",
+        ]
+        with self._lock:
+            for label_values, state in self._values.items():
+                count = float(state["count"])
+                value_sum = float(state["sum"])
+                bucket_counts = list(state["bucket_counts"])
+                for index, bucket in enumerate(self.buckets):
+                    labels = self._build_labels(
+                        label_values,
+                        {"le": str(bucket)},
+                    )
+                    lines.append(
+                        f"{self.name}_bucket{{{labels}}} "
+                        f"{bucket_counts[index]}"
+                    )
+                inf_labels = self._build_labels(
+                    label_values,
+                    {"le": "+Inf"},
+                )
+                lines.append(
+                    f"{self.name}_bucket{{{inf_labels}}} {count}"
+                )
+                base_labels = self._build_labels(label_values, {})
+                lines.append(
+                    f"{self.name}_count{{{base_labels}}} {count}"
+                )
+                lines.append(
+                    f"{self.name}_sum{{{base_labels}}} {value_sum}"
+                )
+        return "\n".join(lines)
+
+    def _build_labels(
+        self,
+        label_values: tuple[str, ...],
+        extra_labels: dict[str, str],
+    ) -> str:
+        labels = {
+            key: value
+            for key, value in zip(
+                self.label_names,
+                label_values,
+                strict=True,
+            )
+        }
+        labels.update(extra_labels)
+        return ",".join(
+            f'{key}="{value}"' for key, value in labels.items()
+        )
+
+
 BOT_STARTUPS_TOTAL = PrometheusCounter(
     "tg_diary_bot_startups_total",
     "Total number of bot startups",
@@ -95,13 +208,38 @@ POLLING_EXCEPTIONS_TOTAL = PrometheusCounter(
 REMINDER_TASKS_TOTAL = PrometheusCounter(
     "tg_diary_reminder_tasks_total",
     "Total number of reminder tasks",
-    ("task",),
+    ("task", "status"),
+)
+EXTERNAL_API_ERRORS_TOTAL = PrometheusCounter(
+    "tg_diary_external_api_errors_total",
+    "Total number of external API errors",
+    ("api", "operation", "error"),
+)
+CELERY_RETRIES_TOTAL = PrometheusCounter(
+    "tg_diary_celery_retries_total",
+    "Total number of Celery retries",
+    ("task", "reason"),
+)
+ALERTS_TOTAL = PrometheusCounter(
+    "tg_diary_alerts_total",
+    "Total number of emitted alerts",
+    ("category", "severity"),
+)
+PROCESSING_DURATION_SECONDS = PrometheusHistogram(
+    "tg_diary_processing_duration_seconds",
+    "Processing duration in seconds",
+    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30),
+    label_names=("component", "operation"),
 )
 
 ALL_COUNTERS = (
     BOT_STARTUPS_TOTAL,
     POLLING_EXCEPTIONS_TOTAL,
     REMINDER_TASKS_TOTAL,
+    EXTERNAL_API_ERRORS_TOTAL,
+    CELERY_RETRIES_TOTAL,
+    ALERTS_TOTAL,
+    PROCESSING_DURATION_SECONDS,
 )
 
 
@@ -120,6 +258,9 @@ class JsonLogFormatter(logging.Formatter):
         }
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
+        alert_fields = getattr(record, "alert_fields", None)
+        if alert_fields:
+            payload["alert"] = alert_fields
 
         return json.dumps(payload, ensure_ascii=False)
 
@@ -197,6 +338,35 @@ class _ObservabilityHandler(BaseHTTPRequestHandler):
 def render_metrics() -> str:
     metrics = [counter.to_prometheus() for counter in ALL_COUNTERS]
     return "\n".join(metrics) + "\n"
+
+
+def observe_duration(
+    component: str,
+    operation: str,
+    started_at: float,
+) -> None:
+    elapsed = time.monotonic() - started_at
+    PROCESSING_DURATION_SECONDS.labels(
+        component=component,
+        operation=operation,
+    ).observe(elapsed)
+
+
+def emit_alert(
+    category: str,
+    message: str,
+    severity: str = "warning",
+    **fields: str,
+) -> None:
+    ALERTS_TOTAL.labels(category=category, severity=severity).inc()
+    logger = logging.getLogger("app.alerts")
+    logger.warning(
+        "ALERT[%s][%s] %s",
+        category,
+        severity,
+        message,
+        extra={"alert_fields": fields},
+    )
 
 
 class ObservabilityServer:

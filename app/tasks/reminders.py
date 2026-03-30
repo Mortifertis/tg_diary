@@ -3,11 +3,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import time
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.storage.base import StorageKey
+from celery import Task
 
 from app.celery_app import celery_app
 from app.config import load_config
@@ -15,7 +18,9 @@ from app.db import create_session_factory
 from app.fsm import create_redis_storage
 from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
-from app.observability import REMINDER_TASKS_TOTAL
+from app.observability import (CELERY_RETRIES_TOTAL, EXTERNAL_API_ERRORS_TOTAL,
+                               REMINDER_TASKS_TOTAL, emit_alert,
+                               observe_duration)
 from app.prompts import build_prompt
 from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
                            WEEKLY_QUESTIONS, pick_questions)
@@ -29,31 +34,102 @@ from app.states import EntryState
 LOGGER = logging.getLogger(__name__)
 
 
-@celery_app.task(name="app.tasks.reminders.enqueue_due_reminders")
-def enqueue_due_reminders() -> int:
+@celery_app.task(
+    bind=True,
+    name="app.tasks.reminders.enqueue_due_reminders",
+    max_retries=3,
+    default_retry_delay=10,
+)
+def enqueue_due_reminders(self: Task) -> int:
+    started_at = time.monotonic()
     config = load_config()
     session_factory = create_session_factory(config.database_url)
-    now_utc = datetime.now(UTC)
+    task_name = "enqueue_due_reminders"
 
-    with session_factory() as session:
-        users = list_due_user_candidates(session, now_utc)
-        user_ids = [user.id for user in users]
+    try:
+        now_utc = datetime.now(UTC)
+        with session_factory() as session:
+            users = list_due_user_candidates(session, now_utc)
+            user_ids = [user.id for user in users]
 
-    for user_id in user_ids:
-        process_user_reminders.delay(user_id)
+        for user_id in user_ids:
+            process_user_reminders.delay(user_id)
 
-    REMINDER_TASKS_TOTAL.labels(task="enqueue_due_reminders").inc()
-    LOGGER.info("Enqueued reminder tasks for %s users", len(user_ids))
-    return len(user_ids)
+        REMINDER_TASKS_TOTAL.labels(task=task_name, status="success").inc()
+        LOGGER.info("Enqueued reminder tasks for %s users", len(user_ids))
+        return len(user_ids)
+    except Exception as error:
+        REMINDER_TASKS_TOTAL.labels(task=task_name, status="error").inc()
+        retries = int(self.request.retries)
+        if retries >= int(self.max_retries):
+            emit_alert(
+                category="celery",
+                severity="critical",
+                message="enqueue_due_reminders reached retry limit",
+                task=task_name,
+            )
+            raise
+        CELERY_RETRIES_TOTAL.labels(
+            task=task_name,
+            reason="runtime_error",
+        ).inc()
+        LOGGER.warning(
+            "Retrying %s after error: %s",
+            task_name,
+            error,
+            exc_info=True,
+        )
+        raise self.retry(exc=error)
+    finally:
+        observe_duration("celery", task_name, started_at)
 
 
-@celery_app.task(name="app.tasks.reminders.process_user_reminders")
-def process_user_reminders(user_id: int) -> int:
-    REMINDER_TASKS_TOTAL.labels(task="process_user_reminders").inc()
-    return asyncio.run(_process_user_reminders_async(user_id))
+@celery_app.task(
+    bind=True,
+    name="app.tasks.reminders.process_user_reminders",
+    max_retries=5,
+    default_retry_delay=20,
+)
+def process_user_reminders(self: Task, user_id: int) -> int:
+    task_name = "process_user_reminders"
+    started_at = time.monotonic()
+    try:
+        result = asyncio.run(_process_user_reminders_async(user_id))
+        REMINDER_TASKS_TOTAL.labels(task=task_name, status="success").inc()
+        return result
+    except Exception as error:
+        REMINDER_TASKS_TOTAL.labels(task=task_name, status="error").inc()
+        retries = int(self.request.retries)
+        if retries >= int(self.max_retries):
+            emit_alert(
+                category="celery",
+                severity="critical",
+                message=(
+                    "process_user_reminders reached retry limit "
+                    f"for user_id={user_id}"
+                ),
+                task=task_name,
+                user_id=str(user_id),
+            )
+            raise
+        CELERY_RETRIES_TOTAL.labels(
+            task=task_name,
+            reason="runtime_error",
+        ).inc()
+        LOGGER.warning(
+            "Retrying %s for user_id=%s after error: %s",
+            task_name,
+            user_id,
+            error,
+            exc_info=True,
+        )
+        raise self.retry(exc=error)
+    finally:
+        observe_duration("celery", task_name, started_at)
 
 
 async def _process_user_reminders_async(user_id: int) -> int:
+    started_at = time.monotonic()
     config = load_config()
     session_factory = create_session_factory(config.database_url)
 
@@ -121,20 +197,68 @@ async def _process_user_reminders_async(user_id: int) -> int:
                     user,
                     reminder.due_at,
                 )
-                await bot.send_message(
-                    chat_id=user.telegram_id,
-                    text=greeting_message,
-                )
+                try:
+                    await bot.send_message(
+                        chat_id=user.telegram_id,
+                        text=greeting_message,
+                    )
+                except TelegramAPIError as error:
+                    EXTERNAL_API_ERRORS_TOTAL.labels(
+                        api="telegram",
+                        operation="send_message",
+                        error="telegram_api_error",
+                    ).inc()
+                    emit_alert(
+                        category="external_api",
+                        message=(
+                            "Failed to send reminder greeting "
+                            f"for user_id={user_id}"
+                        ),
+                        severity="warning",
+                        api="telegram",
+                        operation="send_message",
+                    )
+                    LOGGER.error(
+                        "Telegram API error while sending greeting "
+                        "for user_id=%s",
+                        user_id,
+                        exc_info=True,
+                    )
+                    raise
                 prompt = build_prompt(reminder.entry_type, question)
-                await bot.send_message(
-                    chat_id=user.telegram_id,
-                    text=prompt,
-                    reply_markup=(
-                        MOOD_KEYBOARD
-                        if reminder.entry_type == EntryType.daily
-                        else None
-                    ),
-                )
+                try:
+                    await bot.send_message(
+                        chat_id=user.telegram_id,
+                        text=prompt,
+                        reply_markup=(
+                            MOOD_KEYBOARD
+                            if reminder.entry_type == EntryType.daily
+                            else None
+                        ),
+                    )
+                except TelegramAPIError:
+                    EXTERNAL_API_ERRORS_TOTAL.labels(
+                        api="telegram",
+                        operation="send_message",
+                        error="telegram_api_error",
+                    ).inc()
+                    emit_alert(
+                        category="external_api",
+                        message=(
+                            "Failed to send reminder prompt "
+                            f"for user_id={user_id}"
+                        ),
+                        severity="warning",
+                        api="telegram",
+                        operation="send_message",
+                    )
+                    LOGGER.error(
+                        "Telegram API error while sending prompt "
+                        "for user_id=%s",
+                        user_id,
+                        exc_info=True,
+                    )
+                    raise
 
                 key = StorageKey(
                     bot_id=bot.id,
@@ -166,6 +290,7 @@ async def _process_user_reminders_async(user_id: int) -> int:
             )
             session.commit()
     finally:
+        observe_duration("celery", "process_user_reminders_async", started_at)
         await storage.close()
         await bot.session.close()
 

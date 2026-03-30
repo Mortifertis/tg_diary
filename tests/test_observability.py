@@ -5,6 +5,7 @@ import logging
 from urllib.request import urlopen
 
 from app.observability import (JsonLogFormatter, get_free_port,
+                               observe_duration, render_metrics,
                                start_observability_server)
 
 
@@ -46,3 +47,18 @@ def test_observability_server_health_and_metrics() -> None:
             assert "tg_diary_bot_startups_total" in payload
     finally:
         server.stop()
+
+
+def test_render_metrics_includes_extended_observability_counters() -> None:
+    start = 1.0
+    observe_duration(
+        component="handler",
+        operation="save_entry",
+        started_at=start,
+    )
+    payload = render_metrics()
+
+    assert "tg_diary_external_api_errors_total" in payload
+    assert "tg_diary_celery_retries_total" in payload
+    assert "tg_diary_alerts_total" in payload
+    assert "tg_diary_processing_duration_seconds_bucket" in payload

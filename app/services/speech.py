@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Voice
+
+from app.observability import EXTERNAL_API_ERRORS_TOTAL, emit_alert
 
 if TYPE_CHECKING:
     from faster_whisper import WhisperModel
@@ -95,16 +98,46 @@ async def transcribe_voice(
     if not local_speech_available():
         raise SpeechRecognitionError("engine_unavailable")
 
-    telegram_file = await bot.get_file(voice.file_id)
+    try:
+        telegram_file = await bot.get_file(voice.file_id)
+    except TelegramAPIError as error:
+        EXTERNAL_API_ERRORS_TOTAL.labels(
+            api="telegram",
+            operation="get_file",
+            error="telegram_api_error",
+        ).inc()
+        emit_alert(
+            category="external_api",
+            message="Failed to fetch Telegram voice file metadata",
+            severity="warning",
+            api="telegram",
+            operation="get_file",
+        )
+        raise SpeechRecognitionError("telegram_get_file_failed") from error
     source_name = _build_voice_filename(voice)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         input_path = Path(tmp_dir) / source_name
         wav_path = Path(tmp_dir) / "voice.wav"
-        await bot.download(
-            telegram_file,
-            destination=input_path,
-        )
+        try:
+            await bot.download(
+                telegram_file,
+                destination=input_path,
+            )
+        except TelegramAPIError as error:
+            EXTERNAL_API_ERRORS_TOTAL.labels(
+                api="telegram",
+                operation="download",
+                error="telegram_api_error",
+            ).inc()
+            emit_alert(
+                category="external_api",
+                message="Failed to download Telegram voice file",
+                severity="warning",
+                api="telegram",
+                operation="download",
+            )
+            raise SpeechRecognitionError("telegram_download_failed") from error
         _convert_audio_to_wav(input_path, wav_path)
         transcript = _transcribe_wav_file(wav_path, model_name, device)
 
