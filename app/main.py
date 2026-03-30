@@ -4,12 +4,12 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
 from app.config import load_config
 from app.constants import BOT_TOKEN_MISSING
 from app.db import create_session_factory, run_migrations
+from app.fsm import create_redis_storage
 from app.handlers import common, entry, settings
 from app.scheduler import create_scheduler
 
@@ -24,7 +24,11 @@ async def main() -> None:
     run_migrations(config.database_url)
     session_factory = create_session_factory(config.database_url)
 
-    storage = MemoryStorage()
+    storage = await create_redis_storage(
+        redis_url=config.redis_url,
+        retries=config.redis_connect_retries,
+        retry_delay_seconds=config.redis_retry_delay_seconds,
+    )
     bot = Bot(token=config.bot_token)
     bot.session_factory = session_factory
 
@@ -42,6 +46,7 @@ async def main() -> None:
         logging.info("Polling cancelled")
     finally:
         scheduler.shutdown(wait=False)
+        await storage.close()
         await bot.session.close()
 
 

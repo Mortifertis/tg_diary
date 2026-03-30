@@ -33,8 +33,8 @@ Telegram-бот дневника с ежедневными, еженедельн
    ```bash
    pip install -r requirements.txt
    ```
-3. Запустите PostgreSQL (например, через Docker Compose).
-4. Создайте файл `.env` и задайте `BOT_TOKEN` и `DATABASE_URL`.
+3. Запустите PostgreSQL и Redis (например, через Docker Compose).
+4. Создайте файл `.env` и задайте `BOT_TOKEN`, `DATABASE_URL`, `REDIS_URL`.
 5. Примените миграции:
    ```bash
    alembic upgrade head
@@ -56,6 +56,9 @@ pytest -q
 Пример доступен в `.env.example`.
 - `BOT_TOKEN` — токен Telegram-бота.
 - `DATABASE_URL` — строка подключения (рекомендуется PostgreSQL).
+- `REDIS_URL` — Redis для FSM state (например, `redis://localhost:6379/0`).
+- `REDIS_CONNECT_RETRIES` — число попыток подключения к Redis при старте (по умолчанию `5`).
+- `REDIS_RETRY_DELAY_SECONDS` — пауза между попытками подключения к Redis (по умолчанию `1.0`).
 - `DEFAULT_TIMEZONE` — часовой пояс пользователя по умолчанию (например, `Europe/Moscow`).
 - `DEFAULT_DAILY_TIME` — время ежедневной записи (HH:MM).
 - `DEFAULT_WEEKLY_DAY` — день недели (0=пн ... 6=вс).
