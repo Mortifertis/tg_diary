@@ -18,17 +18,29 @@ from app.db import create_session_factory
 from app.fsm import create_redis_storage
 from app.keyboards import MOOD_KEYBOARD
 from app.models import EntryType, User
-from app.observability import (CELERY_RETRIES_TOTAL, EXTERNAL_API_ERRORS_TOTAL,
-                               REMINDER_TASKS_TOTAL, emit_alert,
-                               observe_duration)
+from app.observability import (
+    CELERY_RETRIES_TOTAL,
+    EXTERNAL_API_ERRORS_TOTAL,
+    REMINDER_TASKS_TOTAL,
+    emit_alert,
+    observe_duration,
+)
 from app.prompts import build_prompt
-from app.questions import (DAILY_QUESTIONS, MONTHLY_QUESTIONS,
-                           WEEKLY_QUESTIONS, pick_questions)
+from app.questions import (
+    DAILY_QUESTIONS,
+    MONTHLY_QUESTIONS,
+    WEEKLY_QUESTIONS,
+    pick_questions,
+)
 from app.services.greetings import build_reminder_greeting
 from app.services.questions import list_active_daily_questions
-from app.services.reminders import (due_daily_reminders, due_monthly_reminder,
-                                    due_weekly_reminder,
-                                    list_due_user_candidates, next_due_at)
+from app.services.reminders import (
+    due_daily_reminders,
+    due_monthly_reminder,
+    due_weekly_reminder,
+    list_due_user_candidates,
+    next_due_at,
+)
 from app.states import EntryState
 
 LOGGER = logging.getLogger(__name__)
@@ -202,7 +214,7 @@ async def _process_user_reminders_async(user_id: int) -> int:
                         chat_id=user.telegram_id,
                         text=greeting_message,
                     )
-                except TelegramAPIError as error:
+                except TelegramAPIError:
                     EXTERNAL_API_ERRORS_TOTAL.labels(
                         api="telegram",
                         operation="send_message",

@@ -21,7 +21,9 @@ def alembic_config(tmp_path: Path) -> Config:
     return config
 
 
-def test_migrations_upgrade_and_downgrade_smoke(alembic_config: Config) -> None:
+def test_migrations_upgrade_and_downgrade_smoke(
+    alembic_config: Config,
+) -> None:
     command.upgrade(alembic_config, "head")
     command.downgrade(alembic_config, "base")
     command.upgrade(alembic_config, "head")

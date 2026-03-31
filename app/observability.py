@@ -12,15 +12,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock, Thread
 from typing import Any
 
-PROMETHEUS_CONTENT_TYPE = (
-    "text/plain; version=0.0.4; charset=utf-8"
-)
+PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
 class _CounterHandle:
     def __init__(
         self,
-        counter: "PrometheusCounter",
+        counter: PrometheusCounter,
         label_values: tuple[str, ...],
     ) -> None:
         self._counter = counter
@@ -87,7 +85,7 @@ class PrometheusCounter:
 class _HistogramHandle:
     def __init__(
         self,
-        histogram: "PrometheusHistogram",
+        histogram: PrometheusHistogram,
         label_values: tuple[str, ...],
     ) -> None:
         self._histogram = histogram
@@ -165,16 +163,10 @@ class PrometheusHistogram:
                     label_values,
                     {"le": "+Inf"},
                 )
-                lines.append(
-                    f"{self.name}_bucket{{{inf_labels}}} {count}"
-                )
+                lines.append(f"{self.name}_bucket{{{inf_labels}}} {count}")
                 base_labels = self._build_labels(label_values, {})
-                lines.append(
-                    f"{self.name}_count{{{base_labels}}} {count}"
-                )
-                lines.append(
-                    f"{self.name}_sum{{{base_labels}}} {value_sum}"
-                )
+                lines.append(f"{self.name}_count{{{base_labels}}} {count}")
+                lines.append(f"{self.name}_sum{{{base_labels}}} {value_sum}")
         return "\n".join(lines)
 
     def _build_labels(
@@ -191,9 +183,7 @@ class PrometheusHistogram:
             )
         }
         labels.update(extra_labels)
-        return ",".join(
-            f'{key}="{value}"' for key, value in labels.items()
-        )
+        return ",".join(f'{key}="{value}"' for key, value in labels.items())
 
 
 BOT_STARTUPS_TOTAL = PrometheusCounter(

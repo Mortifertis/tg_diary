@@ -4,8 +4,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.speech import (SpeechRecognitionError, _build_voice_filename,
-                                 _convert_audio_to_wav, local_speech_available)
+from app.services.speech import (
+    SpeechRecognitionError,
+    _build_voice_filename,
+    _convert_audio_to_wav,
+    local_speech_available,
+)
 
 
 def test_build_voice_filename_for_ogg() -> None:

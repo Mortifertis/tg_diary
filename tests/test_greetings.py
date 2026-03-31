@@ -4,8 +4,10 @@ from datetime import datetime
 from unittest.mock import patch
 
 from app.models import User
-from app.services.greetings import (build_reminder_greeting,
-                                    resolve_display_name)
+from app.services.greetings import (
+    build_reminder_greeting,
+    resolve_display_name,
+)
 
 
 def test_resolve_display_name_uses_default_for_empty_name() -> None:

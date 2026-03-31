@@ -11,9 +11,13 @@ from app.constants import BOT_TOKEN_MISSING
 from app.db import create_session_factory, run_migrations
 from app.fsm import create_redis_storage
 from app.handlers import common, entry, settings
-from app.observability import (BOT_STARTUPS_TOTAL, POLLING_EXCEPTIONS_TOTAL,
-                               setup_logging, setup_sentry,
-                               start_observability_server)
+from app.observability import (
+    BOT_STARTUPS_TOTAL,
+    POLLING_EXCEPTIONS_TOTAL,
+    setup_logging,
+    setup_sentry,
+    start_observability_server,
+)
 
 
 async def main() -> None:
@@ -64,6 +68,7 @@ async def main() -> None:
         await bot.session.close()
         if observability_server is not None:
             observability_server.stop()
+
 
 if __name__ == "__main__":
     try:

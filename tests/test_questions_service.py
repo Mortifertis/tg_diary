@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from app.models import UserQuestion
 from app.questions import DAILY_QUESTIONS
-from app.services.questions import (add_daily_question, delete_daily_question,
-                                    ensure_default_daily_questions,
-                                    list_active_daily_questions,
-                                    list_daily_questions,
-                                    reset_daily_questions_to_default,
-                                    set_daily_question_active)
+from app.services.questions import (
+    add_daily_question,
+    delete_daily_question,
+    ensure_default_daily_questions,
+    list_active_daily_questions,
+    list_daily_questions,
+    reset_daily_questions_to_default,
+    set_daily_question_active,
+)
 
 
 def test_ensure_default_daily_questions_creates_seed(session, user) -> None:
@@ -82,7 +85,9 @@ def test_add_daily_question_rejects_empty_text(session, user) -> None:
     assert added is False
 
 
-def test_delete_daily_question_returns_false_for_unknown_id(session, user) -> None:
+def test_delete_daily_question_returns_false_for_unknown_id(
+    session, user
+) -> None:
     ensure_default_daily_questions(session, user)
     session.commit()
 

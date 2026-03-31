@@ -3,10 +3,13 @@ from __future__ import annotations
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.handlers.common import (_build_edit_input_placeholder,
-                                 _detect_language,
-                                 _format_manage_entries_preview,
-                                 _format_recent_entries, _menu_text)
+from app.handlers.common import (
+    _build_edit_input_placeholder,
+    _detect_language,
+    _format_manage_entries_preview,
+    _format_recent_entries,
+    _menu_text,
+)
 from app.models import AttachmentType, Entry, EntryAttachment, EntryType, User
 
 

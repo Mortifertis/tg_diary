@@ -42,4 +42,6 @@ async def create_redis_storage(
             if attempt < retries:
                 await asyncio.sleep(retry_delay_seconds)
 
-    raise RuntimeError("Unable to connect to Redis FSM storage") from last_error
+    raise RuntimeError(
+        "Unable to connect to Redis FSM storage"
+    ) from last_error

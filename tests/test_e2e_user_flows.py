@@ -120,7 +120,9 @@ def test_e2e_user_flow_start_entry_reminders_export() -> None:
             await common.start(start_message)
 
             with session_factory() as session:
-                user = session.query(User).filter_by(telegram_id=unique_id).one()
+                user = (
+                    session.query(User).filter_by(telegram_id=unique_id).one()
+                )
                 assert user.language == "ru"
 
             create_message = _FakeMessage(
@@ -154,7 +156,9 @@ def test_e2e_user_flow_start_entry_reminders_export() -> None:
             assert reminder_message.answers
 
             with session_factory() as session:
-                user = session.query(User).filter_by(telegram_id=unique_id).one()
+                user = (
+                    session.query(User).filter_by(telegram_id=unique_id).one()
+                )
                 assert user.daily_time == "08:30"
 
             export_menu_message = _FakeMessage(
@@ -163,7 +167,10 @@ def test_e2e_user_flow_start_entry_reminders_export() -> None:
                 text="Экспорт",
             )
             await common.export_menu_with_state(export_menu_message, state)
-            assert await state.get_state() == EntryState.waiting_export_period.state
+            assert (
+                await state.get_state()
+                == EntryState.waiting_export_period.state
+            )
 
             export_period_message = _FakeMessage(
                 bot=bot,

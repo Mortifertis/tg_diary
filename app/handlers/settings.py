@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from datetime import time as dt_time
-from datetime import timedelta
 from typing import cast
 
 from aiogram import Router
@@ -11,38 +10,59 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.config import load_config
-from app.constants import (DAILY_TIME_UPDATED_TEMPLATE, MENU_PAUSE,
-                           MENU_RESUME, MONTHLY_TIME_UPDATED_TEMPLATE,
-                           MONTHLY_USAGE_MESSAGE, NEED_START_MESSAGE,
-                           PAUSE_DISABLED_MESSAGE, PAUSE_ENABLED_TEMPLATE,
-                           QUESTIONS_ADD_PROMPT, QUESTIONS_ADDED_MESSAGE,
-                           QUESTIONS_DELETE_PROMPT, QUESTIONS_DELETED_MESSAGE,
-                           QUESTIONS_DUPLICATE_MESSAGE,
-                           QUESTIONS_EMPTY_MESSAGE,
-                           QUESTIONS_EMPTY_TEXT_MESSAGE,
-                           QUESTIONS_INVALID_ID_MESSAGE, QUESTIONS_LIST_HEADER,
-                           QUESTIONS_NOT_FOUND_MESSAGE, QUESTIONS_PAUSE_PROMPT,
-                           QUESTIONS_PAUSED_MESSAGE,
-                           QUESTIONS_RESET_DEFAULTS_MESSAGE,
-                           QUESTIONS_RESUME_PROMPT, QUESTIONS_RESUMED_MESSAGE,
-                           QUESTIONS_STATUS_ACTIVE, QUESTIONS_STATUS_PAUSED,
-                           SETTINGS_DAILY_PROMPT, SETTINGS_MONTHLY_PROMPT,
-                           SETTINGS_QUESTIONS_MENU_MESSAGE,
-                           SETTINGS_WEEKLY_PROMPT, TIME_USAGE_MESSAGE,
-                           WEEKLY_TIME_UPDATED_TEMPLATE, WEEKLY_USAGE_MESSAGE)
+from app.constants import (
+    DAILY_TIME_UPDATED_TEMPLATE,
+    MENU_PAUSE,
+    MENU_RESUME,
+    MONTHLY_TIME_UPDATED_TEMPLATE,
+    MONTHLY_USAGE_MESSAGE,
+    NEED_START_MESSAGE,
+    PAUSE_DISABLED_MESSAGE,
+    PAUSE_ENABLED_TEMPLATE,
+    QUESTIONS_ADD_PROMPT,
+    QUESTIONS_ADDED_MESSAGE,
+    QUESTIONS_DELETE_PROMPT,
+    QUESTIONS_DELETED_MESSAGE,
+    QUESTIONS_DUPLICATE_MESSAGE,
+    QUESTIONS_EMPTY_MESSAGE,
+    QUESTIONS_EMPTY_TEXT_MESSAGE,
+    QUESTIONS_INVALID_ID_MESSAGE,
+    QUESTIONS_LIST_HEADER,
+    QUESTIONS_NOT_FOUND_MESSAGE,
+    QUESTIONS_PAUSE_PROMPT,
+    QUESTIONS_PAUSED_MESSAGE,
+    QUESTIONS_RESET_DEFAULTS_MESSAGE,
+    QUESTIONS_RESUME_PROMPT,
+    QUESTIONS_RESUMED_MESSAGE,
+    QUESTIONS_STATUS_ACTIVE,
+    QUESTIONS_STATUS_PAUSED,
+    SETTINGS_DAILY_PROMPT,
+    SETTINGS_MONTHLY_PROMPT,
+    SETTINGS_QUESTIONS_MENU_MESSAGE,
+    SETTINGS_WEEKLY_PROMPT,
+    TIME_USAGE_MESSAGE,
+    WEEKLY_TIME_UPDATED_TEMPLATE,
+    WEEKLY_USAGE_MESSAGE,
+)
 from app.i18n import LANGUAGE_FLAGS, menu_variants, tr
-from app.keyboards import (appearance_settings_keyboard,
-                           daily_questions_settings_keyboard,
-                           entries_page_size_keyboard, language_keyboard,
-                           questions_settings_keyboard,
-                           reminder_time_settings_keyboard,
-                           settings_toggle_options_keyboard,
-                           settings_voice_recognition_keyboard)
+from app.keyboards import (
+    appearance_settings_keyboard,
+    daily_questions_settings_keyboard,
+    entries_page_size_keyboard,
+    language_keyboard,
+    questions_settings_keyboard,
+    reminder_time_settings_keyboard,
+    settings_toggle_options_keyboard,
+    settings_voice_recognition_keyboard,
+)
 from app.models import User
-from app.services.questions import (add_daily_question, delete_daily_question,
-                                    list_daily_questions,
-                                    reset_daily_questions_to_default,
-                                    set_daily_question_active)
+from app.services.questions import (
+    add_daily_question,
+    delete_daily_question,
+    list_daily_questions,
+    reset_daily_questions_to_default,
+    set_daily_question_active,
+)
 from app.services.reminders import next_due_at
 from app.services.users import get_user_by_telegram_id
 from app.states import SettingsState

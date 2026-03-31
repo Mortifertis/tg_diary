@@ -6,8 +6,10 @@ from io import BytesIO
 from zipfile import ZipFile
 
 from app.models import EntryType
-from app.services.backup import (build_user_backup_archive,
-                                 import_user_backup_archive)
+from app.services.backup import (
+    build_user_backup_archive,
+    import_user_backup_archive,
+)
 from app.services.entries import create_entry
 from app.services.questions import list_daily_questions
 

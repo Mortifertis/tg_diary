@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-from app.constants import (MENU_CREATE_ENTRY, MENU_MANAGE_ENTRIES,
-                           MENU_QUESTIONS_RESET, MENU_SETTINGS,
-                           MENU_VIEW_ENTRIES)
+from app.constants import (
+    MENU_CREATE_ENTRY,
+    MENU_MANAGE_ENTRIES,
+    MENU_QUESTIONS_RESET,
+    MENU_SETTINGS,
+    MENU_VIEW_ENTRIES,
+)
 from app.i18n import tr
-from app.keyboards import (EXPORT_ENTRIES_KEYBOARD, MAIN_MENU_KEYBOARD,
-                           QUESTIONS_SETTINGS_KEYBOARD,
-                           entries_page_size_keyboard, language_keyboard,
-                           main_menu_keyboard,
-                           settings_toggle_options_keyboard,
-                           settings_voice_recognition_keyboard,
-                           view_entries_actions_keyboard,
-                           voice_confirmation_keyboard)
+from app.keyboards import (
+    EXPORT_ENTRIES_KEYBOARD,
+    MAIN_MENU_KEYBOARD,
+    QUESTIONS_SETTINGS_KEYBOARD,
+    entries_page_size_keyboard,
+    language_keyboard,
+    main_menu_keyboard,
+    settings_toggle_options_keyboard,
+    settings_voice_recognition_keyboard,
+    view_entries_actions_keyboard,
+    voice_confirmation_keyboard,
+)
 
 
 def test_main_menu_contains_new_structure() -> None:
@@ -26,9 +34,7 @@ def test_main_menu_contains_new_structure() -> None:
     ]
 
     icon_texts = [
-        button.text
-        for row in MAIN_MENU_KEYBOARD.keyboard
-        for button in row
+        button.text for row in MAIN_MENU_KEYBOARD.keyboard for button in row
     ]
     assert icon_texts[0].startswith("📝")
 

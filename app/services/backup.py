@@ -6,8 +6,14 @@ from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from app.constants import BACKUP_SCHEMA_VERSION
-from app.models import (AttachmentType, Entry, EntryAttachment, EntryType,
-                        User, UserQuestion)
+from app.models import (
+    AttachmentType,
+    Entry,
+    EntryAttachment,
+    EntryType,
+    User,
+    UserQuestion,
+)
 
 
 def _parse_iso_date(value: str | None) -> date | None:
@@ -164,9 +170,7 @@ def import_user_backup_archive(user: User, archive_bytes: bytes) -> None:
     user.daily_reminder_stage = int(
         settings_payload.get("daily_reminder_stage", 0)
     )
-    user.next_due_at = _parse_iso_datetime(
-        settings_payload.get("next_due_at")
-    )
+    user.next_due_at = _parse_iso_datetime(settings_payload.get("next_due_at"))
 
     user.entries.clear()
     user.questions.clear()

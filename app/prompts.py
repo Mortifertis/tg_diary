@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from app.constants import (DAILY_PROMPT_SUFFIX, MONTHLY_PROMPT_PREFIX,
-                           WEEKLY_PROMPT_PREFIX)
+from app.constants import (
+    DAILY_PROMPT_SUFFIX,
+    MONTHLY_PROMPT_PREFIX,
+    WEEKLY_PROMPT_PREFIX,
+)
 from app.models import EntryType
 
 

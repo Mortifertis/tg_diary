@@ -3,10 +3,16 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from app.models import Entry, EntryType
-from app.services.entries import (create_entry, delete_entry_by_index,
-                                  format_entries_export, get_entry_by_index,
-                                  list_entries, resolve_export_start_date,
-                                  update_entry_text, update_streak)
+from app.services.entries import (
+    create_entry,
+    delete_entry_by_index,
+    format_entries_export,
+    get_entry_by_index,
+    list_entries,
+    resolve_export_start_date,
+    update_entry_text,
+    update_streak,
+)
 from app.services.timezones import format_user_datetime
 
 

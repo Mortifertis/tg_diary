@@ -4,8 +4,11 @@ from pathlib import Path
 
 from aiogram.types import Message
 
-from app.constants import (ALLOWED_FILE_EXTENSIONS, ALLOWED_IMAGE_EXTENSIONS,
-                           ENTRY_MEDIA_MAX_IMAGES)
+from app.constants import (
+    ALLOWED_FILE_EXTENSIONS,
+    ALLOWED_IMAGE_EXTENSIONS,
+    ENTRY_MEDIA_MAX_IMAGES,
+)
 
 
 class AttachmentValidationError(ValueError):

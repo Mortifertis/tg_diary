@@ -8,49 +8,82 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, ForceReply, Message
 
-from app.constants import (BACKUP_MAX_PAGE_SIZE, DAILY_PROMPT_SUFFIX,
-                           ENTRY_DETAILS_ATTACHMENTS_HEADER,
-                           ENTRY_DETAILS_HEADER_TEMPLATE,
-                           ENTRY_DETAILS_TEXT_TEMPLATE, EXPORT_DONE_TEMPLATE,
-                           EXPORT_MENU_PROMPT, EXPORT_NO_ENTRIES,
-                           MANAGE_DELETE_PREFIX, MANAGE_EDIT_PREFIX,
-                           MANAGE_ENTRIES_DELETED,
-                           MANAGE_ENTRIES_PREVIEW_LIMIT,
-                           MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT,
-                           MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX,
-                           MANAGE_ENTRIES_TEXT_EDIT_PROMPT,
-                           MANAGE_ENTRIES_TEXT_EMPTY, MANAGE_ENTRIES_UPDATED,
-                           MANAGE_SHOW_MORE_PREFIX, MANUAL_ENTRY_PROMPT,
-                           MOOD_BAD_ICON, MOOD_CALLBACK_PREFIX, MOOD_GOOD_ICON,
-                           MOOD_NEUTRAL_ICON, MOOD_SAVED_MESSAGE,
-                           NEED_START_MESSAGE, STATS_MOOD_TEMPLATE,
-                           STATS_STREAK_TEMPLATE, STATS_TOTAL_TEMPLATE,
-                           STATUS_DAILY_TEMPLATE, STATUS_HEADER,
-                           STATUS_MONTHLY_TEMPLATE,
-                           STATUS_PAUSE_ACTIVE_TEMPLATE, STATUS_PAUSE_INACTIVE,
-                           STATUS_PAUSE_TEMPLATE, STATUS_WEEKLY_TEMPLATE,
-                           VIEW_SHOW_MORE_PREFIX)
+from app.constants import (
+    BACKUP_MAX_PAGE_SIZE,
+    DAILY_PROMPT_SUFFIX,
+    ENTRY_DETAILS_ATTACHMENTS_HEADER,
+    ENTRY_DETAILS_HEADER_TEMPLATE,
+    ENTRY_DETAILS_TEXT_TEMPLATE,
+    EXPORT_DONE_TEMPLATE,
+    EXPORT_MENU_PROMPT,
+    EXPORT_NO_ENTRIES,
+    MANAGE_DELETE_PREFIX,
+    MANAGE_EDIT_PREFIX,
+    MANAGE_ENTRIES_DELETED,
+    MANAGE_ENTRIES_PREVIEW_LIMIT,
+    MANAGE_ENTRIES_PREVIEW_TEXT_LIMIT,
+    MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX,
+    MANAGE_ENTRIES_TEXT_EDIT_PROMPT,
+    MANAGE_ENTRIES_TEXT_EMPTY,
+    MANAGE_ENTRIES_UPDATED,
+    MANAGE_SHOW_MORE_PREFIX,
+    MANUAL_ENTRY_PROMPT,
+    MOOD_BAD_ICON,
+    MOOD_CALLBACK_PREFIX,
+    MOOD_GOOD_ICON,
+    MOOD_NEUTRAL_ICON,
+    MOOD_SAVED_MESSAGE,
+    NEED_START_MESSAGE,
+    STATS_MOOD_TEMPLATE,
+    STATS_STREAK_TEMPLATE,
+    STATS_TOTAL_TEMPLATE,
+    STATUS_DAILY_TEMPLATE,
+    STATUS_HEADER,
+    STATUS_MONTHLY_TEMPLATE,
+    STATUS_PAUSE_ACTIVE_TEMPLATE,
+    STATUS_PAUSE_INACTIVE,
+    STATUS_PAUSE_TEMPLATE,
+    STATUS_WEEKLY_TEMPLATE,
+    VIEW_SHOW_MORE_PREFIX,
+)
 from app.i18n import menu_variants, normalize_language, tr
-from app.keyboards import (MOOD_KEYBOARD, export_entries_keyboard,
-                           main_menu_keyboard, manage_entries_actions_keyboard,
-                           manage_entries_page_keyboard,
-                           reminder_settings_keyboard,
-                           view_entries_actions_keyboard,
-                           view_entries_page_keyboard)
+from app.keyboards import (
+    MOOD_KEYBOARD,
+    export_entries_keyboard,
+    main_menu_keyboard,
+    manage_entries_actions_keyboard,
+    manage_entries_page_keyboard,
+    reminder_settings_keyboard,
+    view_entries_actions_keyboard,
+    view_entries_page_keyboard,
+)
 from app.models import Entry, EntryType, User
 from app.questions import DAILY_QUESTIONS, pick_question
-from app.services.backup import (build_user_backup_archive,
-                                 import_user_backup_archive)
-from app.services.entries import (count_entries, delete_entry_by_index,
-                                  format_entries_export, get_entry_by_index,
-                                  list_entries, mood_breakdown,
-                                  resolve_export_start_date, update_entry_text)
-from app.services.questions import (ensure_default_daily_questions,
-                                    list_active_daily_questions,
-                                    list_daily_questions)
+from app.services.backup import (
+    build_user_backup_archive,
+    import_user_backup_archive,
+)
+from app.services.entries import (
+    count_entries,
+    delete_entry_by_index,
+    format_entries_export,
+    get_entry_by_index,
+    list_entries,
+    mood_breakdown,
+    resolve_export_start_date,
+    update_entry_text,
+)
+from app.services.questions import (
+    ensure_default_daily_questions,
+    list_active_daily_questions,
+    list_daily_questions,
+)
 from app.services.reminders import next_due_at
-from app.services.timezones import (format_user_datetime, local_date_for_user,
-                                    local_day_start_to_utc_naive)
+from app.services.timezones import (
+    format_user_datetime,
+    local_date_for_user,
+    local_day_start_to_utc_naive,
+)
 from app.services.users import get_user_by_telegram_id
 from app.states import EntryState, SettingsState
 from app.storage import get_session
@@ -215,11 +248,9 @@ def _format_recent_entries(entries: list[Entry], user: User) -> str:
             )
         created_at = cast(datetime, entry.created_at)
         lines.append(
-            (
-                f"{index}. {format_user_datetime(user, created_at)} "
-                f"({entry.entry_type.value}) [{entry.entry_index}]\n"
-                f"{entry.text}{attachment_line}"
-            )
+            f"{index}. {format_user_datetime(user, created_at)} "
+            f"({entry.entry_type.value}) [{entry.entry_index}]\n"
+            f"{entry.text}{attachment_line}"
         )
     return "\n\n".join(lines)
 
@@ -236,7 +267,7 @@ def _build_edit_input_placeholder(text: str) -> str:
     max_len = MANAGE_ENTRIES_TEXT_EDIT_PLACEHOLDER_MAX
     if len(cleaned_text) <= max_len:
         return cleaned_text
-    return f"{cleaned_text[:max_len - 3]}..."
+    return f"{cleaned_text[: max_len - 3]}..."
 
 
 def _format_manage_entries_preview(entries: list[Entry], language: str) -> str:
@@ -567,7 +598,7 @@ async def show_more_view_entries(callback: CallbackQuery) -> None:
         entries = list_entries(session, user, limit=None)
 
     page_size = _entries_page_size(user)
-    page = entries[offset:offset + page_size]
+    page = entries[offset : offset + page_size]
     if not page:
         await callback.answer()
         return
@@ -825,7 +856,7 @@ async def show_more_manage_entries(callback: CallbackQuery) -> None:
             return
         entries = list_entries(session, user, limit=None)
 
-    chunk = entries[offset:offset + MANAGE_ENTRIES_PREVIEW_LIMIT]
+    chunk = entries[offset : offset + MANAGE_ENTRIES_PREVIEW_LIMIT]
     if not chunk:
         if callback.message:
             await callback.message.answer(

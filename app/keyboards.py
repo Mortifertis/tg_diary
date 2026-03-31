@@ -2,13 +2,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
-                           KeyboardButton, ReplyKeyboardMarkup)
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
 
-from app.constants import (MANAGE_DELETE_PREFIX, MANAGE_EDIT_PREFIX,
-                           MANAGE_SHOW_MORE_PREFIX, MOOD_BAD_LABEL,
-                           MOOD_GOOD_LABEL, MOOD_NEUTRAL_LABEL,
-                           VIEW_SHOW_MORE_PREFIX)
+from app.constants import (
+    MANAGE_DELETE_PREFIX,
+    MANAGE_EDIT_PREFIX,
+    MANAGE_SHOW_MORE_PREFIX,
+    MOOD_BAD_LABEL,
+    MOOD_GOOD_LABEL,
+    MOOD_NEUTRAL_LABEL,
+    VIEW_SHOW_MORE_PREFIX,
+)
 from app.i18n import LANGUAGE_FLAGS, tr
 
 MOOD_KEYBOARD = InlineKeyboardMarkup(
@@ -79,7 +88,7 @@ def _two_columns_with_back(
 ) -> ReplyKeyboardMarkup:
     rows: list[list[str]] = []
     for index in range(0, len(keys), 2):
-        rows.append(keys[index:index + 2])
+        rows.append(keys[index : index + 2])
     rows.append(["menu_back"])
     return _reply_keyboard(language, rows, use_icons)
 

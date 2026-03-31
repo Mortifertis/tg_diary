@@ -67,6 +67,7 @@ def list_daily_questions(session: Session, user: User) -> list[UserQuestion]:
     )
     return cast(list[UserQuestion], questions)
 
+
 def list_active_daily_questions(session: Session, user: User) -> list[str]:
     ensure_default_daily_questions(session, user)
     rows = (

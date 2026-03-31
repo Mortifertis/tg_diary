@@ -101,8 +101,7 @@ TEXTS = {
         "voice_convert_done": "Распознанный текст:\n{text}",
         "voice_convert_failed": "Не удалось распознать голосовое сообщение.",
         "voice_convert_engine_missing": (
-            "Распознавание недоступно: установите faster-whisper и "
-            "ffmpeg."
+            "Распознавание недоступно: установите faster-whisper и ffmpeg."
         ),
         "menu_questions_change": "Изменить вопросы",
         "menu_questions_count": "Количество вопросов",
@@ -114,9 +113,7 @@ TEXTS = {
         "settings_entries_page_size_prompt": (
             "Выберите число записей на страницу (1-25):"
         ),
-        "settings_entries_page_size_invalid": (
-            "Введите число от 1 до 25."
-        ),
+        "settings_entries_page_size_invalid": ("Введите число от 1 до 25."),
         "settings_entries_page_size_updated": (
             "Показываю по {count} записей на страницу."
         ),
@@ -337,8 +334,7 @@ TEXTS = {
         "voice_convert_done": "Texte reconnu :\n{text}",
         "voice_convert_failed": "Échec de la reconnaissance vocale.",
         "voice_convert_engine_missing": (
-            "Reconnaissance indisponible : installez faster-whisper et "
-            "ffmpeg."
+            "Reconnaissance indisponible : installez faster-whisper et ffmpeg."
         ),
         "menu_questions_change": "Modifier les questions",
         "menu_questions_count": "Nombre de questions",
@@ -350,9 +346,7 @@ TEXTS = {
         "settings_entries_page_size_prompt": (
             "Choisissez le nombre d’entrées par page (1-25) :"
         ),
-        "settings_entries_page_size_invalid": (
-            "Entrez un nombre de 1 à 25."
-        ),
+        "settings_entries_page_size_invalid": ("Entrez un nombre de 1 à 25."),
         "settings_entries_page_size_updated": (
             "Affichage de {count} entrées par page."
         ),

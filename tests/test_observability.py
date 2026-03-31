@@ -4,9 +4,13 @@ import json
 import logging
 from urllib.request import urlopen
 
-from app.observability import (JsonLogFormatter, get_free_port,
-                               observe_duration, render_metrics,
-                               start_observability_server)
+from app.observability import (
+    JsonLogFormatter,
+    get_free_port,
+    observe_duration,
+    render_metrics,
+    start_observability_server,
+)
 
 
 def test_json_log_formatter_includes_required_fields() -> None:

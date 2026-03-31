@@ -4,8 +4,12 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from app.models import EntryType
-from app.services.entries import (count_entries, create_entry,
-                                  has_entry_for_date, mood_breakdown)
+from app.services.entries import (
+    count_entries,
+    create_entry,
+    has_entry_for_date,
+    mood_breakdown,
+)
 from app.services.reminders import due_daily_reminders
 
 

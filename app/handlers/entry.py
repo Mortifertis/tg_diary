@@ -9,20 +9,33 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.config import load_config
-from app.constants import (ENTRY_EMPTY_CONTENT_MESSAGE, ENTRY_MEDIA_MAX_IMAGES,
-                           ENTRY_SAVED_MESSAGE, ENTRY_TOO_MANY_IMAGES_TEMPLATE,
-                           ENTRY_UNSUPPORTED_EXTENSION_TEMPLATE,
-                           NEED_START_MESSAGE)
+from app.constants import (
+    ENTRY_EMPTY_CONTENT_MESSAGE,
+    ENTRY_MEDIA_MAX_IMAGES,
+    ENTRY_SAVED_MESSAGE,
+    ENTRY_TOO_MANY_IMAGES_TEMPLATE,
+    ENTRY_UNSUPPORTED_EXTENSION_TEMPLATE,
+    NEED_START_MESSAGE,
+)
 from app.i18n import tr
 from app.models import EntryType
-from app.observability import (EXTERNAL_API_ERRORS_TOTAL, emit_alert,
-                               observe_duration)
+from app.observability import (
+    EXTERNAL_API_ERRORS_TOTAL,
+    emit_alert,
+    observe_duration,
+)
 from app.prompts import build_prompt
-from app.services.attachments import (AttachmentValidationError,
-                                      has_entry_content, parse_attachments)
+from app.services.attachments import (
+    AttachmentValidationError,
+    has_entry_content,
+    parse_attachments,
+)
 from app.services.entries import create_entry
-from app.services.speech import (SpeechRecognitionError,
-                                 local_speech_available, transcribe_voice)
+from app.services.speech import (
+    SpeechRecognitionError,
+    local_speech_available,
+    transcribe_voice,
+)
 from app.services.timezones import message_datetime_to_utc_naive
 from app.services.users import get_user_by_telegram_id
 from app.states import EntryState

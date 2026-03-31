@@ -1,6 +1,12 @@
-from app.i18n import (DEFAULT_LANGUAGE, LANGUAGE_FLAGS, SUPPORTED_LANGUAGES,
-                      menu_variants, normalize_language, tr,
-                      validate_translations)
+from app.i18n import (
+    DEFAULT_LANGUAGE,
+    LANGUAGE_FLAGS,
+    SUPPORTED_LANGUAGES,
+    menu_variants,
+    normalize_language,
+    tr,
+    validate_translations,
+)
 
 
 def test_menu_variants_contains_all_languages() -> None:
