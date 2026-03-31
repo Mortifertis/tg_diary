@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Callable, TypeVar
+
+T = TypeVar("T", int, float)
 
 
 @dataclass(slots=True)
@@ -30,38 +33,77 @@ class Config:
     observability_port: int
 
 
+def _get_numeric_env(
+    name: str,
+    default: T,
+    parser: Callable[[str], T],
+) -> T:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    try:
+        return parser(raw_value)
+    except (TypeError, ValueError):
+        return default
+
+
 def load_config() -> Config:
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     return Config(
         bot_token=os.getenv("BOT_TOKEN", ""),
         database_url=os.getenv("DATABASE_URL", "sqlite:///./tg_diary.db"),
-        redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-        redis_connect_retries=int(os.getenv("REDIS_CONNECT_RETRIES", "5")),
-        redis_retry_delay_seconds=float(
-            os.getenv("REDIS_RETRY_DELAY_SECONDS", "1.0")
+        redis_url=redis_url,
+        redis_connect_retries=_get_numeric_env(
+            name="REDIS_CONNECT_RETRIES",
+            default=5,
+            parser=int,
+        ),
+        redis_retry_delay_seconds=_get_numeric_env(
+            name="REDIS_RETRY_DELAY_SECONDS",
+            default=1.0,
+            parser=float,
         ),
         timezone=os.getenv("DEFAULT_TIMEZONE", "UTC"),
         daily_time_default=os.getenv("DEFAULT_DAILY_TIME", "09:00"),
-        weekly_day_default=int(os.getenv("DEFAULT_WEEKLY_DAY", "6")),
+        weekly_day_default=_get_numeric_env(
+            name="DEFAULT_WEEKLY_DAY",
+            default=6,
+            parser=int,
+        ),
         weekly_time_default=os.getenv("DEFAULT_WEEKLY_TIME", "20:00"),
-        monthly_day_default=int(os.getenv("DEFAULT_MONTHLY_DAY", "1")),
+        monthly_day_default=_get_numeric_env(
+            name="DEFAULT_MONTHLY_DAY",
+            default=1,
+            parser=int,
+        ),
         monthly_time_default=os.getenv("DEFAULT_MONTHLY_TIME", "20:00"),
-        reminder_evening_hour=int(os.getenv("REMINDER_EVENING_HOUR", "20")),
+        reminder_evening_hour=_get_numeric_env(
+            name="REMINDER_EVENING_HOUR",
+            default=20,
+            parser=int,
+        ),
         whisper_model=os.getenv("WHISPER_MODEL", "small"),
         whisper_device=os.getenv("WHISPER_DEVICE", "cpu"),
         celery_broker_url=os.getenv(
             "CELERY_BROKER_URL",
-            os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            redis_url,
         ),
         celery_result_backend=os.getenv(
             "CELERY_RESULT_BACKEND",
-            os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            redis_url,
         ),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
         sentry_dsn=os.getenv("SENTRY_DSN", ""),
         sentry_environment=os.getenv("SENTRY_ENVIRONMENT", "dev"),
-        sentry_traces_sample_rate=float(
-            os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0")
+        sentry_traces_sample_rate=_get_numeric_env(
+            name="SENTRY_TRACES_SAMPLE_RATE",
+            default=0.0,
+            parser=float,
         ),
         observability_host=os.getenv("OBSERVABILITY_HOST", "0.0.0.0"),
-        observability_port=int(os.getenv("OBSERVABILITY_PORT", "8001")),
+        observability_port=_get_numeric_env(
+            name="OBSERVABILITY_PORT",
+            default=8001,
+            parser=int,
+        ),
     )
