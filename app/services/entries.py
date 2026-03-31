@@ -132,7 +132,8 @@ def list_entries(
     query = query.order_by(Entry.created_at.desc(), Entry.id.desc())
     if limit is not None:
         query = query.limit(limit)
-    return query.all()
+    entries = query.all()
+    return cast(list[Entry], entries)
 
 
 def format_entries_export(entries: list[Entry]) -> str:

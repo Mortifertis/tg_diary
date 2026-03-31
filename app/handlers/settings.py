@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from datetime import time as dt_time
 from datetime import timedelta
+from typing import cast
 
 from aiogram import Router
 from aiogram.filters import Command
@@ -37,6 +38,7 @@ from app.keyboards import (appearance_settings_keyboard,
                            reminder_time_settings_keyboard,
                            settings_toggle_options_keyboard,
                            settings_voice_recognition_keyboard)
+from app.models import User
 from app.services.questions import (add_daily_question, delete_daily_question,
                                     list_daily_questions,
                                     reset_daily_questions_to_default,
@@ -49,7 +51,14 @@ from app.storage import get_session
 router = Router()
 
 
-def _recalculate_next_due_at(session, user) -> None:
+def _telegram_user_id(message: Message) -> int | None:
+    from_user = message.from_user
+    if from_user is None:
+        return None
+    return cast(int, from_user.id)
+
+
+def _recalculate_next_due_at(session, user: User) -> None:
     config = load_config()
     user.next_due_at = next_due_at(
         session,
@@ -73,7 +82,7 @@ def _menu_text(message: Message, key: str) -> bool:
 def _flag_to_language(flag: str | None) -> str | None:
     if not flag:
         return None
-    for language, value in LANGUAGE_FLAGS.items():
+    for language, value in cast(dict[str, str], LANGUAGE_FLAGS).items():
         if value == flag:
             return language
     return None
@@ -136,50 +145,71 @@ def _parse_question_id(raw_value: str | None) -> int | None:
 
 
 def _update_daily_time(message: Message, time_value: str) -> str:
+    telegram_user_id = _telegram_user_id(message)
+    if telegram_user_id is None:
+        return cast(str, NEED_START_MESSAGE)
     with get_session(message.bot) as session:
-        user = get_user_by_telegram_id(session, message.from_user.id)
+        user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
-            return NEED_START_MESSAGE
+            return cast(str, NEED_START_MESSAGE)
         user.daily_time = time_value
         user.daily_reminder_date = None
         user.daily_reminder_stage = 0
         _recalculate_next_due_at(session, user)
-    return DAILY_TIME_UPDATED_TEMPLATE.format(time_value=time_value)
+    return cast(
+        str,
+        DAILY_TIME_UPDATED_TEMPLATE.format(time_value=time_value),
+    )
 
 
 def _update_weekly_time(message: Message, day: int, time_value: str) -> str:
+    telegram_user_id = _telegram_user_id(message)
+    if telegram_user_id is None:
+        return cast(str, NEED_START_MESSAGE)
     with get_session(message.bot) as session:
-        user = get_user_by_telegram_id(session, message.from_user.id)
+        user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
-            return NEED_START_MESSAGE
+            return cast(str, NEED_START_MESSAGE)
         user.weekly_day = day
         user.weekly_time = time_value
         _recalculate_next_due_at(session, user)
-    return WEEKLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value)
+    return cast(
+        str,
+        WEEKLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value),
+    )
 
 
 def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
+    telegram_user_id = _telegram_user_id(message)
+    if telegram_user_id is None:
+        return cast(str, NEED_START_MESSAGE)
     with get_session(message.bot) as session:
-        user = get_user_by_telegram_id(session, message.from_user.id)
+        user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
-            return NEED_START_MESSAGE
+            return cast(str, NEED_START_MESSAGE)
         user.monthly_day = day
         user.monthly_time = time_value
         _recalculate_next_due_at(session, user)
-    return MONTHLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value)
+    return cast(
+        str,
+        MONTHLY_TIME_UPDATED_TEMPLATE.format(day=day, time_value=time_value),
+    )
 
 
 def _build_daily_questions_list(message: Message) -> str:
+    telegram_user_id = _telegram_user_id(message)
+    if telegram_user_id is None:
+        return cast(str, NEED_START_MESSAGE)
     with get_session(message.bot) as session:
-        user = get_user_by_telegram_id(session, message.from_user.id)
+        user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
-            return NEED_START_MESSAGE
+            return cast(str, NEED_START_MESSAGE)
         questions = list_daily_questions(session, user)
 
     if not questions:
-        return QUESTIONS_EMPTY_MESSAGE
+        return cast(str, QUESTIONS_EMPTY_MESSAGE)
 
-    lines = [QUESTIONS_LIST_HEADER]
+    lines = [cast(str, QUESTIONS_LIST_HEADER)]
     for question in questions:
         status = (
             QUESTIONS_STATUS_ACTIVE

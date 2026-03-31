@@ -283,7 +283,7 @@ def list_due_user_candidates(
     session: Session,
     now_utc: datetime,
 ) -> list[User]:
-    return (
+    due_users = (
         session.query(User)
         .filter(
             or_(
@@ -293,3 +293,4 @@ def list_due_user_candidates(
         )
         .all()
     )
+    return cast(list[User], due_users)

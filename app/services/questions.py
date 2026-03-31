@@ -59,13 +59,13 @@ def reset_daily_questions_to_default(session: Session, user: User) -> None:
 
 def list_daily_questions(session: Session, user: User) -> list[UserQuestion]:
     ensure_default_daily_questions(session, user)
-    return (
+    questions = (
         session.query(UserQuestion)
         .filter_by(user_id=user.id, entry_type=EntryType.daily)
         .order_by(UserQuestion.id.asc())
         .all()
     )
-
+    return cast(list[UserQuestion], questions)
 
 def list_active_daily_questions(session: Session, user: User) -> list[str]:
     ensure_default_daily_questions(session, user)

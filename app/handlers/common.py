@@ -63,9 +63,9 @@ def _extract_display_name(message: Message) -> str:
     if from_user is None:
         return ""
     if from_user.full_name:
-        return from_user.full_name.strip()
+        return cast(str, from_user.full_name).strip()
     if from_user.username:
-        return from_user.username.strip()
+        return cast(str, from_user.username).strip()
     return ""
 
 
@@ -73,7 +73,8 @@ def _detect_language(message: Message) -> str:
     from_user = message.from_user
     if from_user is None:
         return "ru"
-    return normalize_language(from_user.language_code)
+    language_code = cast(str | None, from_user.language_code)
+    return cast(str, normalize_language(language_code))
 
 
 def _menu_text(message: Message, key: str) -> bool:
@@ -247,10 +248,11 @@ def _format_manage_entries_preview(entries: list[Entry], language: str) -> str:
 
 
 def _entries_page_size(user: User) -> int:
-    value = int(user.entries_page_size or 5)
+    value = cast(int, user.entries_page_size or 5)
     if value < 1:
         return 1
-    return min(value, BACKUP_MAX_PAGE_SIZE)
+    max_page_size = cast(int, BACKUP_MAX_PAGE_SIZE)
+    return min(value, max_page_size)
 
 
 async def _send_entry_details(
