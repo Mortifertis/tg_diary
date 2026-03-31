@@ -108,6 +108,15 @@ alembic revision --autogenerate -m "описание"
 При старте приложения выполняется `upgrade head`, поэтому схема
 в production приводится к актуальной ревизии автоматически.
 
+
+## Release hygiene
+- Ведите изменения в `CHANGELOG.md` (раздел `Unreleased`).
+- Используйте semver-теги формата `vMAJOR.MINOR.PATCH`, например
+  `v1.2.3`.
+- При пуше semver-тега автоматически запускается workflow
+  `.github/workflows/release.yml` и публикуется Docker-образ в GHCR
+  с тегами версии и `latest`.
+
 ## Docker
 1. Заполните `.env.docker` и укажите токен бота.
 2. Запустите:
