@@ -24,6 +24,7 @@ from app.fsm import create_redis_storage
 from app.handlers import common, entry, settings
 from app.models import Entry, EntryType, User
 from app.states import EntryState
+from app.storage import set_session_factory
 
 
 @dataclass(slots=True)
@@ -96,7 +97,8 @@ def test_e2e_user_flow_start_entry_reminders_export() -> None:
         future=True,
     )
 
-    bot = SimpleNamespace(session_factory=session_factory)
+    set_session_factory(session_factory)
+    bot = SimpleNamespace()
 
     async def scenario() -> None:
         storage = await create_redis_storage(

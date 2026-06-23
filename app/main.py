@@ -18,6 +18,7 @@ from app.observability import (
     setup_sentry,
     start_observability_server,
 )
+from app.storage import set_session_factory
 
 
 async def main() -> None:
@@ -38,8 +39,10 @@ async def main() -> None:
     if not config.bot_token:
         raise RuntimeError(BOT_TOKEN_MISSING)
 
-    run_migrations(config.database_url)
+    if config.run_migrations_on_startup:
+        run_migrations(config.database_url)
     session_factory = create_session_factory(config.database_url)
+    set_session_factory(session_factory)
 
     storage = await create_redis_storage(
         redis_url=config.redis_url,
@@ -47,7 +50,6 @@ async def main() -> None:
         retry_delay_seconds=config.redis_retry_delay_seconds,
     )
     bot = Bot(token=config.bot_token)
-    bot.session_factory = session_factory
 
     dp = Dispatcher(storage=storage)
     dp.include_router(common.router)

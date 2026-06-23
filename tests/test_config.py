@@ -11,6 +11,7 @@ def test_load_config_uses_defaults_for_invalid_numeric_env(
     monkeypatch.setenv("REMINDER_EVENING_HOUR", "bad")
     monkeypatch.setenv("SENTRY_TRACES_SAMPLE_RATE", "bad")
     monkeypatch.setenv("OBSERVABILITY_PORT", "bad")
+    monkeypatch.delenv("RUN_MIGRATIONS_ON_STARTUP", raising=False)
 
     config = load_config()
 
@@ -21,6 +22,7 @@ def test_load_config_uses_defaults_for_invalid_numeric_env(
     assert config.reminder_evening_hour == 20
     assert config.sentry_traces_sample_rate == 0.0
     assert config.observability_port == 8001
+    assert config.run_migrations_on_startup is False
 
 
 def test_load_config_reuses_redis_url_for_celery(monkeypatch) -> None:
@@ -32,3 +34,11 @@ def test_load_config_reuses_redis_url_for_celery(monkeypatch) -> None:
 
     assert config.celery_broker_url == "redis://test:6379/2"
     assert config.celery_result_backend == "redis://test:6379/2"
+
+
+def test_load_config_reads_migration_startup_flag(monkeypatch) -> None:
+    monkeypatch.setenv("RUN_MIGRATIONS_ON_STARTUP", "true")
+
+    config = load_config()
+
+    assert config.run_migrations_on_startup is True

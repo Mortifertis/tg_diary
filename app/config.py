@@ -29,6 +29,7 @@ class Config:
     sentry_traces_sample_rate: float
     observability_host: str
     observability_port: int
+    run_migrations_on_startup: bool
 
 
 def _get_numeric_env[T: (int, float)](
@@ -43,6 +44,13 @@ def _get_numeric_env[T: (int, float)](
         return parser(raw_value)
     except (TypeError, ValueError):
         return default
+
+
+def _get_bool_env(name: str, default: bool) -> bool:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def load_config() -> Config:
@@ -103,5 +111,9 @@ def load_config() -> Config:
             name="OBSERVABILITY_PORT",
             default=8001,
             parser=int,
+        ),
+        run_migrations_on_startup=_get_bool_env(
+            name="RUN_MIGRATIONS_ON_STARTUP",
+            default=False,
         ),
     )
