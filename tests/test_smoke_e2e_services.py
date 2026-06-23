@@ -28,7 +28,7 @@ def test_smoke_e2e_with_postgres_and_redis_services() -> None:
     run_migrations(database_url)
     session_factory = create_session_factory(database_url)
 
-    unique_suffix = uuid.uuid4().hex[:12]
+    unique_suffix = uuid.uuid4().hex[:10]
     telegram_id = int(uuid.uuid4().int % 1_000_000_000)
 
     with session_factory() as session:
