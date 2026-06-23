@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, TypeVar
-
-T = TypeVar("T", int, float)
 
 
 @dataclass(slots=True)
@@ -33,7 +31,7 @@ class Config:
     observability_port: int
 
 
-def _get_numeric_env(
+def _get_numeric_env[T: (int, float)](
     name: str,
     default: T,
     parser: Callable[[str], T],

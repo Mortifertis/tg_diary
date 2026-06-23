@@ -34,7 +34,8 @@ Telegram-бот дневника с ежедневными, еженедельн
    pip install -r requirements.txt
    ```
 3. Запустите PostgreSQL и Redis (например, через Docker Compose).
-4. Создайте файл `.env` и задайте `BOT_TOKEN`, `DATABASE_URL`, `REDIS_URL`.
+4. Скопируйте `.env.example` в `.env` и задайте реальные значения
+   `BOT_TOKEN`, `DATABASE_URL`, `REDIS_URL`.
 5. Примените миграции:
    ```bash
    alembic upgrade head
@@ -109,6 +110,22 @@ alembic revision --autogenerate -m "описание"
 в production приводится к актуальной ревизии автоматически.
 
 
+## Текущее состояние проекта
+## Текущее состояние проекта
+Проект находится в рабочем демонстрационном состоянии:
+реализован Telegram-бот, настроены миграции Alembic, фоновые задачи Celery,
+Docker Compose, тесты, ruff, mypy и coverage. Для локального запуска
+необходимо задать собственный `BOT_TOKEN` и хранить реальные секреты вне репозитория.
+
+Проверенное состояние:
+- код проходит ruff, mypy и основной набор pytest;
+- явных TODO/FIXME-заглушек и `NotImplemented` в кодовой базе не найдено;
+- `.env.example` и `.env.docker` содержат только безопасные шаблоны;
+- для production-запуска нужны внешние PostgreSQL, Redis, Celery worker и
+  Celery beat;
+- распознавание голоса требует системный `ffmpeg` и опциональную модель
+  `faster-whisper`.
+
 ## Release hygiene
 - Ведите изменения в `CHANGELOG.md` (раздел `Unreleased`).
 - Используйте semver-теги формата `vMAJOR.MINOR.PATCH`, например
@@ -118,7 +135,8 @@ alembic revision --autogenerate -m "описание"
   с тегами версии и `latest`.
 
 ## Docker
-1. Заполните `.env.docker` и укажите токен бота.
+1. Скопируйте `.env.example` в `.env.docker`, замените `localhost`
+   на имена Docker-сервисов из примера и укажите токен бота.
 2. Запустите:
    ```bash
    docker compose up --build

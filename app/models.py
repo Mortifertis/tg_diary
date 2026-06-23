@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import enum
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from sqlalchemy import (
     Boolean,
@@ -20,7 +20,7 @@ from sqlalchemy.orm import relationship
 from app.db import Base
 
 
-class EntryType(str, enum.Enum):
+class EntryType(StrEnum):
     daily = "daily"
     weekly = "weekly"
     monthly = "monthly"
@@ -99,7 +99,7 @@ class Entry(Base):
     )
 
 
-class AttachmentType(str, enum.Enum):
+class AttachmentType(StrEnum):
     image = "image"
     file = "file"
 
