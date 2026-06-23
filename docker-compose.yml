@@ -7,6 +7,11 @@ services:
       POSTGRES_DB: tg_diary
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tg_diary -d tg_diary"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -16,11 +21,20 @@ services:
       timeout: 3s
       retries: 5
 
+  migrate:
+    build: .
+    command: python -m app.migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+
   bot:
     build: .
     depends_on:
-      db:
-        condition: service_started
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     env_file:
@@ -30,8 +44,8 @@ services:
     build: .
     command: celery -A app.celery_app.celery_app worker -l info
     depends_on:
-      db:
-        condition: service_started
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     env_file:
@@ -41,8 +55,8 @@ services:
     build: .
     command: celery -A app.celery_app.celery_app beat -l info
     depends_on:
-      db:
-        condition: service_started
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     env_file:
