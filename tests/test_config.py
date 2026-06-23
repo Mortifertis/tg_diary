@@ -1,7 +1,9 @@
 from app.config import load_config
 
 
-def test_load_config_uses_defaults_for_invalid_numeric_env(monkeypatch) -> None:
+def test_load_config_uses_defaults_for_invalid_numeric_env(
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("REDIS_CONNECT_RETRIES", "invalid")
     monkeypatch.setenv("REDIS_RETRY_DELAY_SECONDS", "invalid")
     monkeypatch.setenv("DEFAULT_WEEKLY_DAY", "bad")

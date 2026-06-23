@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "0001_initial_schema"
@@ -17,17 +18,19 @@ branch_labels = None
 depends_on = None
 
 
-entry_type_enum = sa.Enum(
+entry_type_enum = postgresql.ENUM(
     "daily",
     "weekly",
     "monthly",
     "user",
     name="entrytype",
+    create_type=False,
 )
-attachment_type_enum = sa.Enum(
+attachment_type_enum = postgresql.ENUM(
     "image",
     "file",
     name="attachmenttype",
+    create_type=False,
 )
 
 
