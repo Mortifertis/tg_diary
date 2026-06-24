@@ -111,6 +111,18 @@ aiogram Bot + Routers
                 +--> Sentry hooks
 ```
 
+## Документация
+
+Подробности по устройству и эксплуатации вынесены в отдельные документы:
+
+* [Architecture](docs/architecture.md) — bot flow, DB/session flow,
+  Celery flow и observability flow.
+* [Operations](docs/operations.md) — локальный запуск, Docker, миграции,
+  env, backup и troubleshooting.
+* [Observability](docs/observability.md) — `/health`, `/metrics`, Sentry,
+  JSON logs и список метрик.
+* [Roadmap](docs/roadmap.md) — дальнейшие шаги развития проекта.
+
 ## Быстрый старт
 
 Рекомендуемая версия Python: **3.12.x**.
