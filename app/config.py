@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypeVar
 
 BOT_TOKEN_PLACEHOLDER = "replace-with-telegram-bot-token"
 PLACEHOLDER_VALUES = {"", BOT_TOKEN_PLACEHOLDER}
 PRODUCTION_ENVIRONMENTS = {"prod", "production"}
+NumberT = TypeVar("NumberT", int, float)
 
 
 @dataclass(slots=True)
@@ -37,11 +39,11 @@ class Config:
     run_migrations_on_startup: bool
 
 
-def _get_numeric_env[T: (int, float)](
+def _get_numeric_env(  # noqa: UP047
     name: str,
-    default: T,
-    parser: Callable[[str], T],
-) -> T:
+    default: NumberT,
+    parser: Callable[[str], NumberT],
+) -> NumberT:
     raw_value = os.getenv(name)
     if raw_value is None:
         return default
