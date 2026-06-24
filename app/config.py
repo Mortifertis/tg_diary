@@ -4,9 +4,14 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 
+BOT_TOKEN_PLACEHOLDER = "replace-with-telegram-bot-token"
+PLACEHOLDER_VALUES = {"", BOT_TOKEN_PLACEHOLDER}
+PRODUCTION_ENVIRONMENTS = {"prod", "production"}
+
 
 @dataclass(slots=True)
 class Config:
+    app_env: str
     bot_token: str
     database_url: str
     redis_url: str
@@ -56,6 +61,7 @@ def _get_bool_env(name: str, default: bool) -> bool:
 def load_config() -> Config:
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     return Config(
+        app_env=os.getenv("APP_ENV", "dev"),
         bot_token=os.getenv("BOT_TOKEN", ""),
         database_url=os.getenv("DATABASE_URL", "sqlite:///./tg_diary.db"),
         redis_url=redis_url,
@@ -117,3 +123,29 @@ def load_config() -> Config:
             default=False,
         ),
     )
+
+
+def _is_placeholder(value: str) -> bool:
+    return value.strip() in PLACEHOLDER_VALUES
+
+
+def validate_config(config: Config) -> None:
+    if _is_placeholder(config.bot_token):
+        raise RuntimeError("BOT_TOKEN must be configured")
+
+    if config.app_env.strip().lower() not in PRODUCTION_ENVIRONMENTS:
+        return
+
+    required_values = {
+        "DATABASE_URL": config.database_url,
+        "REDIS_URL": config.redis_url,
+        "CELERY_BROKER_URL": config.celery_broker_url,
+    }
+    invalid_names = [
+        name
+        for name, value in required_values.items()
+        if _is_placeholder(value)
+    ]
+    if invalid_names:
+        names = ", ".join(invalid_names)
+        raise RuntimeError(f"{names} must be configured in production")

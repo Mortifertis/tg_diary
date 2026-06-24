@@ -6,8 +6,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 
-from app.config import load_config
-from app.constants import BOT_TOKEN_MISSING
+from app.config import load_config, validate_config
 from app.db import create_session_factory, run_migrations
 from app.fsm import create_redis_storage
 from app.handlers import common, entry, settings
@@ -24,6 +23,7 @@ from app.storage import set_session_factory
 async def main() -> None:
     load_dotenv()
     config = load_config()
+    validate_config(config)
     setup_logging(config.log_level)
     setup_sentry(
         dsn=config.sentry_dsn,
@@ -35,9 +35,6 @@ async def main() -> None:
         host=config.observability_host,
         port=config.observability_port,
     )
-
-    if not config.bot_token:
-        raise RuntimeError(BOT_TOKEN_MISSING)
 
     if config.run_migrations_on_startup:
         run_migrations(config.database_url)

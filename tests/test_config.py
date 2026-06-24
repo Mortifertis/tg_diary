@@ -1,4 +1,6 @@
-from app.config import load_config
+import pytest
+
+from app.config import load_config, validate_config
 
 
 def test_load_config_uses_defaults_for_invalid_numeric_env(
@@ -42,3 +44,45 @@ def test_load_config_reads_migration_startup_flag(monkeypatch) -> None:
     config = load_config()
 
     assert config.run_migrations_on_startup is True
+
+
+@pytest.mark.parametrize(
+    "bot_token",
+    ["", "replace-with-telegram-bot-token"],
+)
+def test_validate_config_rejects_missing_or_placeholder_bot_token(
+    bot_token,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("BOT_TOKEN", bot_token)
+
+    config = load_config()
+
+    with pytest.raises(RuntimeError, match="BOT_TOKEN must be configured"):
+        validate_config(config)
+
+
+def test_validate_config_allows_configured_bot_token(monkeypatch) -> None:
+    monkeypatch.setenv("BOT_TOKEN", "123:real-token")
+
+    config = load_config()
+
+    validate_config(config)
+
+
+def test_validate_config_rejects_production_placeholders(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("BOT_TOKEN", "123:real-token")
+    monkeypatch.setenv("DATABASE_URL", "")
+    monkeypatch.setenv("REDIS_URL", "")
+    monkeypatch.setenv("CELERY_BROKER_URL", "")
+
+    config = load_config()
+
+    with pytest.raises(RuntimeError) as error:
+        validate_config(config)
+
+    message = str(error.value)
+    assert "DATABASE_URL" in message
+    assert "REDIS_URL" in message
+    assert "CELERY_BROKER_URL" in message
