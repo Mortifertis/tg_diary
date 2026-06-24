@@ -1,8 +1,13 @@
 # tg_diary
 
+![CI](https://github.com/Mortifertis/tg_diary/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![Docker](https://img.shields.io/badge/docker-compose-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 **tg_diary** — Telegram-бот для личного дневника: короткие ежедневные записи, настроение, напоминания, ретроспективы, экспорт архива и поддержка голосовых вложений.
 
-Проект сделан как портфолио-MVP с упором на практическую backend-разработку: `aiogram 3`, `SQLAlchemy 2`, `Alembic`, `PostgreSQL/SQLite`, `Redis`, `Celery`, `Docker Compose`, тесты и базовая наблюдаемость.
+Проект реализован как небольшое production-minded backend-приложение: `aiogram 3`, `SQLAlchemy 2`, `Alembic`, `PostgreSQL/SQLite`, `Redis`, `Celery`, `Docker Compose`, тесты и базовая наблюдаемость.
 
 ## Какую проблему решает проект
 
@@ -142,7 +147,7 @@ python -m app.main
 
 ```bash
 cp .env.docker.example .env.docker
-docker compose up --build
+make docker-up
 ```
 
 Docker Compose поднимает приложение и необходимые сервисы: базу данных, Redis,
@@ -192,16 +197,13 @@ WHISPER_DEVICE=
 ## Проверка качества
 
 ```bash
-pre-commit run --all-files
-ruff check .
-mypy --config-file mypy.ini
-pytest -q
+make check
 ```
 
 Отдельно можно запустить performance-тесты:
 
 ```bash
-pytest -q -m performance
+make test-performance
 ```
 
 ## Основные переменные окружения
@@ -252,7 +254,7 @@ git push origin v0.1.0
 
 ## Статус проекта
 
-Проект находится в состоянии портфолио-MVP.
+Проект находится в состоянии активного backend MVP.
 
 Уже реализованы основные пользовательские сценарии: создание записей, настройки, напоминания, ретроспективы, экспорт, работа с голосовыми вложениями, миграции, фоновые задачи, Docker Compose, тесты и observability.
 

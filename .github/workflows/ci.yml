@@ -39,7 +39,7 @@ jobs:
             --cov=app \
             --cov-report=term-missing:skip-covered \
             --cov-report=xml \
-            --cov-fail-under=0
+            --cov-fail-under=45
 
       - name: Migration checks
         run: pytest -q tests/test_migrations_ci.py
@@ -51,7 +51,7 @@ jobs:
         if: always()
         run: |
           python -m pip install coverage
-          coverage report --format=markdown --fail-under=0 \
+          coverage report --format=markdown --fail-under=45 \
             >> "$GITHUB_STEP_SUMMARY"
 
       - name: Coverage comment for PR
