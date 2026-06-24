@@ -101,7 +101,7 @@ async def _save_entry_message(
             text_value = "\n\n".join(answers)
             question = None
 
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
             if not user:
                 await message.answer(NEED_START_MESSAGE)
@@ -142,7 +142,7 @@ async def _transcribe_voice_if_needed(
     if not message.voice:
         return False
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -210,7 +210,7 @@ async def _transcribe_voice_if_needed(
 async def save_entry(message: Message, state: FSMContext) -> None:
     started_at = time.monotonic()
     try:
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         mode = user.voice_recognition_mode if user else "auto"
 
@@ -241,7 +241,7 @@ async def save_entry_voice_confirmation(
 ) -> None:
     started_at = time.monotonic()
     try:
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
 

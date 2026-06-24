@@ -9,7 +9,16 @@ from dotenv import load_dotenv
 from app.config import load_config, validate_config
 from app.db import create_session_factory, run_migrations
 from app.fsm import create_redis_storage
-from app.handlers import common, entry, settings
+from app.handlers import (
+    backup,
+    common,
+    entries_create,
+    entries_manage,
+    entries_view,
+    entry,
+    export,
+    settings,
+)
 from app.observability import (
     BOT_STARTUPS_TOTAL,
     POLLING_EXCEPTIONS_TOTAL,
@@ -50,6 +59,11 @@ async def main() -> None:
 
     dp = Dispatcher(storage=storage)
     dp.include_router(common.router)
+    dp.include_router(entries_create.router)
+    dp.include_router(entries_view.router)
+    dp.include_router(entries_manage.router)
+    dp.include_router(export.router)
+    dp.include_router(backup.router)
     dp.include_router(settings.router)
     dp.include_router(entry.router)
 

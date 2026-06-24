@@ -168,7 +168,7 @@ def _update_daily_time(message: Message, time_value: str) -> str:
     telegram_user_id = _telegram_user_id(message)
     if telegram_user_id is None:
         return cast(str, NEED_START_MESSAGE)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
             return cast(str, NEED_START_MESSAGE)
@@ -186,7 +186,7 @@ def _update_weekly_time(message: Message, day: int, time_value: str) -> str:
     telegram_user_id = _telegram_user_id(message)
     if telegram_user_id is None:
         return cast(str, NEED_START_MESSAGE)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
             return cast(str, NEED_START_MESSAGE)
@@ -203,7 +203,7 @@ def _update_monthly_time(message: Message, day: int, time_value: str) -> str:
     telegram_user_id = _telegram_user_id(message)
     if telegram_user_id is None:
         return cast(str, NEED_START_MESSAGE)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
             return cast(str, NEED_START_MESSAGE)
@@ -220,7 +220,7 @@ def _build_daily_questions_list(message: Message) -> str:
     telegram_user_id = _telegram_user_id(message)
     if telegram_user_id is None:
         return cast(str, NEED_START_MESSAGE)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, telegram_user_id)
         if not user:
             return cast(str, NEED_START_MESSAGE)
@@ -241,7 +241,7 @@ def _build_daily_questions_list(message: Message) -> str:
 
 
 async def _show_daily_questions_menu(message: Message) -> None:
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -315,7 +315,7 @@ async def menu_set_monthly_time(message: Message, state: FSMContext) -> None:
 @router.message(lambda message: _menu_text(message, "menu_questions"))
 async def daily_questions_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.in_daily_questions_settings)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -340,7 +340,7 @@ async def set_daily_questions_count_menu(
     state: FSMContext,
 ) -> None:
     await state.set_state(SettingsState.waiting_daily_questions_count)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     await message.answer(tr(language, "settings_questions_count_prompt"))
@@ -354,7 +354,7 @@ async def set_entries_page_size_menu(
     state: FSMContext,
 ) -> None:
     await state.set_state(SettingsState.waiting_entries_page_size)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -367,7 +367,7 @@ async def set_entries_page_size_menu(
 @router.message(lambda message: _menu_text(message, "settings_reminder_times"))
 async def reminder_times_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.in_reminder_times_settings)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -380,7 +380,7 @@ async def reminder_times_menu(message: Message, state: FSMContext) -> None:
 @router.message(lambda message: _menu_text(message, "settings_appearance"))
 async def appearance_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.in_appearance_settings)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -409,7 +409,7 @@ async def voice_recognition_menu(
     state: FSMContext,
 ) -> None:
     await state.set_state(SettingsState.waiting_voice_recognition_mode)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -432,7 +432,7 @@ async def save_voice_recognition_mode(
     if _menu_text(message, "settings_voice_recognition_off"):
         mode = "off"
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(tr("ru", "need_start"))
@@ -468,7 +468,7 @@ async def settings_language_menu(
     state: FSMContext,
 ) -> None:
     await state.set_state(SettingsState.waiting_language)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
     language = user.language if user else "ru"
     use_icons = bool(user.enable_menu_icons) if user else True
@@ -482,7 +482,7 @@ async def settings_language_menu(
 async def save_language(message: Message, state: FSMContext) -> None:
     selected = _flag_to_language(message.text)
     if not selected:
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
         use_icons = bool(user.enable_menu_icons) if user else True
@@ -492,7 +492,7 @@ async def save_language(message: Message, state: FSMContext) -> None:
         )
         return
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(tr("ru", "need_start"))
@@ -508,7 +508,7 @@ async def save_language(message: Message, state: FSMContext) -> None:
 @router.message(lambda message: _menu_text(message, "settings_toggle_icons"))
 async def toggle_icons(message: Message, state: FSMContext) -> None:
     await state.set_state(SettingsState.waiting_toggle_icons_value)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(tr("ru", "need_start"))
@@ -524,7 +524,7 @@ async def save_toggle_icons(message: Message, state: FSMContext) -> None:
     selected_enable = _menu_text(message, "toggle_enable")
     selected_disable = _menu_text(message, "toggle_disable")
     if not (selected_enable or selected_disable):
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
         use_icons = bool(user.enable_menu_icons) if user else True
@@ -532,7 +532,7 @@ async def save_toggle_icons(message: Message, state: FSMContext) -> None:
         return
 
     use_icons = selected_enable
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(tr("ru", "need_start"))
@@ -586,7 +586,7 @@ async def prompt_resume_daily_question(
 
 @router.message(lambda message: _menu_text(message, "menu_questions_reset"))
 async def reset_daily_questions(message: Message, state: FSMContext) -> None:
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -605,7 +605,7 @@ async def save_daily_questions_count(
 ) -> None:
     value = (message.text or "").strip()
     if not value.isdigit():
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
         await message.answer(tr(language, "settings_questions_count_invalid"))
@@ -613,13 +613,13 @@ async def save_daily_questions_count(
 
     count = int(value)
     if count < 1 or count > 10:
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
         await message.answer(tr(language, "settings_questions_count_invalid"))
         return
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -640,7 +640,7 @@ async def save_entries_page_size(
 ) -> None:
     value = (message.text or "").strip()
     if not value.isdigit():
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
         await message.answer(
@@ -650,7 +650,7 @@ async def save_entries_page_size(
 
     count = int(value)
     if count < 1 or count > 25:
-        with get_session(message.bot) as session:
+        with get_session() as session:
             user = get_user_by_telegram_id(session, message.from_user.id)
         language = user.language if user else "ru"
         await message.answer(
@@ -658,7 +658,7 @@ async def save_entries_page_size(
         )
         return
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -679,7 +679,7 @@ async def save_new_daily_question(message: Message, state: FSMContext) -> None:
         await message.answer(QUESTIONS_EMPTY_TEXT_MESSAGE)
         return
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -705,7 +705,7 @@ async def delete_daily_question_from_menu(
         await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
         return
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -731,7 +731,7 @@ async def pause_daily_question_from_menu(
         await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
         return
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -757,7 +757,7 @@ async def resume_daily_question_from_menu(
         await message.answer(QUESTIONS_INVALID_ID_MESSAGE)
         return
 
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -820,7 +820,7 @@ async def pause(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     days = int(args[1]) if len(args) > 1 and args[1].isdigit() else 36500
     pause_until = date.today() + timedelta(days=days)
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
@@ -835,7 +835,7 @@ async def pause(message: Message) -> None:
 @router.message(Command("resume"))
 @router.message(lambda message: (message.text or "") == MENU_RESUME)
 async def resume(message: Message) -> None:
-    with get_session(message.bot) as session:
+    with get_session() as session:
         user = get_user_by_telegram_id(session, message.from_user.id)
         if not user:
             await message.answer(NEED_START_MESSAGE)
